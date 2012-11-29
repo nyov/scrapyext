@@ -1,3 +1,16 @@
+"""
+MongoDBStorage
+
+ITEM_PIPELINES = [
+    'project.pipelines.MongoDBStorage',
+]
+
+MONGODB_SERVER = "localhost"
+MONGODB_PORT = 27017
+MONGODB_DB = "database"
+MONGODB_COLLECTION = "collection"
+
+"""
 import pymongo
 
 from scrapy.exceptions import DropItem
