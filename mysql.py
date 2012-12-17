@@ -1,24 +1,35 @@
-# MySQL pipeline (http://snippets.scrapy.org/snippets/33/)
-import datetime
-import MySQLdb.cursors
+from scrapy import log
+from scrapy.conf import settings
+from scrapy.exceptions import DropItem
 from twisted.enterprise import adbapi
 
-class SQLStorePipeline(object):
+from project.items import DatabaseItem
+
+import datetime
+import time
+import MySQLdb.cursors
+
+# MySQL pipeline (http://snippets.scrapy.org/snippets/33/)
+#class SQLStorePipeline(object):
+class MysqlDBPipeline(object):
 
     def __init__(self):
         self.dbpool = adbapi.ConnectionPool('MySQLdb',
-            db='mydb',
-            user='myuser',
-            passwd='mypass',
-            cursorclass=MySQLdb.cursors.DictCursor,
-            charset='utf8',
-            use_unicode=True
+            #settings['MYSQLDB_SERVER']
+            #settings['MYSQLDB_PORT']
+            db = settings['MYSQLDB_DB'],
+            user = settings['MYSQLDB_USER'],
+            passwd = settings['MYSQLDB_PASS'],
+            cursorclass = MySQLdb.cursors.DictCursor,
+            charset = 'utf8',
+            use_unicode = True
         )
 
     def process_item(self, item, spider):
         # run db query in thread pool
-        query = self.dbpool.runInteraction(self._conditional_insert, item)
-        query.addErrback(self.handle_error)
+        if isinstance(item, DatabaseItem):
+            query = self.dbpool.runInteraction(self._conditional_insert, item)
+            query.addErrback(self.handle_error)
 
         return item
 
@@ -43,9 +54,6 @@ class SQLStorePipeline(object):
 
 
 # MySQL Async Twisted Db Pipeline (http://snippets.scrapy.org/snippets/30/)
-import MySQLdb.cursors
-from twisted.enterprise import adbapi
-
 class InventoryPipeline(object):
 
     def __init__(self):
@@ -55,15 +63,15 @@ class InventoryPipeline(object):
         .. note:: hardcoded db settings
         """
         self.dbpool = adbapi.ConnectionPool('MySQLdb',
-            db='database',
-            user='user',
-            passwd='password',
-            cursorclass=MySQLdb.cursors.DictCursor,
-            charset='utf8',
-            use_unicode=True
+            db = settings['MYSQLDB_DB'],
+            user = settings['MYSQLDB_USER'],
+            passwd = settings['MYSQLDB_PASS'],
+            cursorclass = MySQLdb.cursors.DictCursor,
+            charset = 'utf8',
+            use_unicode = True
         )
 
-    def process_item(self, spider, item):
+    def process_item(self, item, spider):
         """
         Run db query in thread pool and call :func:`_conditional_insert`.
         We only want to process Items of type `InventoryItem`.
@@ -74,7 +82,7 @@ class InventoryPipeline(object):
         :type item: Item
         :returns:  Item
         """
-        if isinstance(item, InventoryItem):
+        if isinstance(item, DatabaseItem):
             query = self.dbpool.runInteraction(self._conditional_insert, item)
             query.addErrback(self._database_error, item)
 
