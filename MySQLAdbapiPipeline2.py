@@ -4,6 +4,9 @@ MySQL Pipeline
 imported from
 http://snipplr.com/view/66986/mysql-pipeline/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: redtricycle
+# date  : Nov 21, 2011
 """
 # Cannot use this to create the table, must have table already created
 
@@ -11,7 +14,7 @@ from twisted.enterprise import adbapi
 import datetime
 import MySQLdb.cursors
 
-class SQLStorePipeline(object):
+class MySQLAdbapiPipeline(object):
 
     def __init__(self):
         self.dbpool = adbapi.ConnectionPool('MySQLdb', db='mydb',
@@ -43,7 +46,3 @@ class SQLStorePipeline(object):
 
     def handle_error(self, e):
         log.err(e)
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: redtricycle
-# date  : Nov 21, 2011

@@ -4,12 +4,15 @@ make and filter the log file into a html file
 imported from
 http://snipplr.com/view/66991/make-and-filter-the-log-file-into-a-html-file/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: outofthink
+# date  : Sep 22, 2011
 """
 # this script make the scrapy log files into a html file and generate crawl tree.error be taged red,404 be taged yellow and offsite be taged green.
 #
 # usage example:
 #
-# $logview.py logfile
+# $htmllog.py logfile
 #
 # output is t.html
 
@@ -247,7 +250,3 @@ def _test():
 
 if __name__=='__main__':
     main()
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: outofthink
-# date  : Sep 22, 2011

@@ -4,15 +4,20 @@ Middleware to avoid re-visiting already visited items
 imported from
 http://snipplr.com/view/67018/middleware-to-avoid-revisiting-already-visited-items/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: pablo
+# date  : Aug 10, 2010
 """
-# This middleware can be used to avoid re-visiting already visited items, which can be useful for speeding up the scraping for projects with immutable items, ie. items that, once scraped, don't change.
+# This middleware can be used to avoid re-visiting already visited
+# items, which can be useful for speeding up the scraping for
+# projects with immutable items, ie. items that, once scraped, don't change.
 
 from scrapy import log
 from scrapy.http import Request
 from scrapy.item import BaseItem
 from scrapy.utils.request import request_fingerprint
 
-from myproject.items import MyItem
+from myproject.items import MyItem as Item
 
 class IgnoreVisitedItems(object):
     """Middleware to ignore re-visiting item pages if they were already visited
@@ -46,14 +51,10 @@ class IgnoreVisitedItems(object):
                     x['visit_id'] = visit_id
                     x['visit_status'] = 'new'
             if visited:
-                ret.append(MyItem(visit_id=visit_id, visit_status='old'))
+                ret.append(Item(visit_id=visit_id, visit_status='old'))
             else:
                 ret.append(x)
         return ret
 
     def _visited_id(self, request):
         return request.meta.get(self.VISITED_ID) or request_fingerprint(request)
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: pablo
-# date  : Aug 10, 2010

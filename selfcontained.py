@@ -1,14 +1,17 @@
 """
 Self-contained script to crawl a site
 
+This scripts shows how to crawl a site without settings up a complete project.
+
+Note: the `crawler.start()` can't be called more than once due twisted's reactor limitation.
+
 imported from
 http://snipplr.com/view/67012/selfcontained-script-to-crawl-a-site-updated-scrapy-130dev/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: darkrho
+# date  : Aug 25, 2010
 """
-# This scripts shows how to crawl a site without settings up a complete project.
-#
-# Note: the `crawler.start()` can't be called more than once due twisted's reactor limitation.
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # author: Rolando Espinoza La fuente
@@ -94,7 +97,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: darkrho
-# date  : Aug 25, 2010

@@ -1,12 +1,18 @@
 """
 Sitemap Spider
 
+This script allows you to quickly crawl pages based off of the sitemap(s)
+for any given domain.  The XmlXPathSelector was not doing it for me nor
+was the XmlItemExporter this code is by far the fastest and easiest way
+I have found to crawl a site based off of the URLs listed in the sitemap.
+
 imported from
 http://snipplr.com/view/66999/sitemap-spider/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: wynbennett
+# date  : Jun 21, 2011
 """
-# This script allows you to quickly crawl pages based off of the sitemap(s) for any given domain.  The XmlXPathSelector was not doing it for me nor was the XmlItemExporter this code is by far the fastest and easiest way I have found to crawl a site based off of the URLs listed in the sitemap.
-
 import re
 
 from scrapy.spider import BaseSpider
@@ -36,7 +42,3 @@ class SitemapSpider(BaseSpider):
 		#Do all your page parsing and selecting the elemtents you want
                 blash.divText = hxs.select('//div/text()').extract()[0]
 		yield blah
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: wynbennett
-# date  : Jun 21, 2011

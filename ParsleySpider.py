@@ -1,17 +1,29 @@
 """
-Parsley Spider
+ParsleySpider
+
+"Parsley is a simple language for extracting structured data from
+web pages. It consists of an powerful Selector Language wrapped
+with a JSON Structure that can represent page-wide formatting."
+
+We can get Parsley language site parsers (parselets) from Parselets site.
+
+"Parselets.com is a central repository for user-created APIs to the
+web, called Parselets. Parselets are snippets of parsing code
+written in a language called Parsley, which is a familiar combination
+of CSS, XPath, Regular Expressions, and JSON."
+
+In this example, we integrate Parsley with Scrapy using a new class
+of Item, ParsleyItem that defines its fields from a parselet code,
+and extend the CrawlSpider to create ParsleySpider that provides a
+method to parse a response with a parselet and return a ParsleyItem.
 
 imported from
 http://snipplr.com/view/67016/parsley-spider/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: void
+# date  : Aug 10, 2010
 """
-# "Parsley is a simple language for extracting structured data from web pages. It consists of an powerful Selector Language wrapped with a JSON Structure that can represent page-wide formatting."
-#
-# We can get Parsley language site parsers (parselets) from Parselets site.
-#
-# "Parselets.com is a central repository for user-created APIs to the web, called Parselets. Parselets are snippets of parsing code written in a language called Parsley, which is a familiar combination of CSS, XPath, Regular Expressions, and JSON."
-#
-# In this example, we integrate Parsley with Scrapy using a new class of Item, ParsleyItem that defines its fields from a parselet code, and extend the CrawlSpider to create ParsleySpider that provides a method to parse a response with a parselet and return a ParsleyItem.
 
 from pyparsley import PyParsley
 
@@ -66,7 +78,3 @@ class YoutubeSpider(ParsleySpider):
     )
 
     parslet_code = YOUTUBE_PARSLET
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: void
-# date  : Aug 10, 2010

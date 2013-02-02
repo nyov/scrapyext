@@ -1,13 +1,20 @@
 """
+BlockingCrawlerFromThread
+
 Using Scrapy crawler with a blocking API from a thread
 
 imported from
 http://snipplr.com/view/67010/using-scrapy-crawler-with-a-blocking-api-from-a-thread/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: pablo
+# date  : Aug 26, 2010
 """
 # This script shows how you can use the Scrapy crawler from a thread simulating a blocking API:
 #
-# The following example shows how you can interact with the crawler in a blocking fashion, to run two spider, one that scrapes 15 items and then another that scrapes 50 items. IPython is installed so its console is used, instead of the standard Python console.
+# The following example shows how you can interact with the crawler in a blocking fashion,
+# to run two spiders, one that scrapes 15 items and then another that scrapes 50 items.
+# IPython is installed so its console is used, instead of the standard Python console.
 #
 # For more information see [Twisted Threads](http://twistedmatrix.com/documents/current/core/howto/threading.html)
 #
@@ -69,7 +76,3 @@ blocking_crawler = BlockingCrawlerFromThread(crawler)
 d = threads.deferToThread(start_python_console, {'crawler': blocking_crawler})
 d.addBoth(lambda x: crawler.stop())
 crawler.start()
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: pablo
-# date  : Aug 26, 2010

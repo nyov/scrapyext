@@ -4,13 +4,17 @@ Async Twisted Db Pipeline
 imported from
 http://snipplr.com/view/66989/async-twisted-db-pipeline/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: stav
+# date  : Nov 16, 2011
 """
-# This pipeline uses a shared database pool to conserve resources during asynchronous item processing.
+# This pipeline uses a shared database pool to conserve resources
+# during asynchronous item processing.
 
 import MySQLdb.cursors
 from twisted.enterprise import adbapi
 
-class InventoryPipeline(object):
+class MySQLAdbapiPipeline(object):
 
     def __init__(self):
         """
@@ -95,7 +99,3 @@ class InventoryPipeline(object):
         Log an exception to the Scrapy log buffer.
         """
         print "Database error: ", e
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: stav
-# date  : Nov 16, 2011

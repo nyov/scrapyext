@@ -4,6 +4,9 @@ Control the crawl path of a spider
 imported from
 http://snipplr.com/view/66983/crawlpathmiddleware-easily-control-the-crawl-path-of-a-spider/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: kevinbache
+# date  : May 11, 2012
 """
 # This is a piece of SpiderMiddleware to control the crawl path of a CrawlSpider-like spider.  It works by dropping
 # some links extracted from certain pages.  The idea is to get a bit more fine-grained control than using
@@ -39,9 +42,9 @@ http://snipplr.com/view/66983/crawlpathmiddleware-easily-control-the-crawl-path-
 #
 # See the settings.py code for examples.
 
-=======================
-===== settings.py =====
-=======================
+# =======================
+# ===== settings.py =====
+# =======================
 
 SPIDER_MIDDLEWARES = {
     'path.to.crawlpath_module.CrawlPathMiddleware': 550,
@@ -88,9 +91,9 @@ PATH_DEBUG_URL_LENGTH = 95
 
 
 
-========================
-===== crawlpath.py =====
-========================
+# ========================
+# ===== crawlpath.py =====
+# ========================
 
 # This is a piece of SpiderMiddleware to control the crawl path of a CrawlSpider-like spider.  It works by dropping
 # some links extracted from certain pages.  The idea is to get a bit more fine-grained control than using
@@ -244,7 +247,3 @@ class CrawlPathMiddleware(object):
                 else:
                     # r is an Item.  allow it to pass.
                     yield r
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: kevinbache
-# date  : May 11, 2012

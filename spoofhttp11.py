@@ -4,6 +4,9 @@ Spoof requests as HTTP/1.1
 imported from
 http://snipplr.com/view/66994/spoof-requests-as-http11/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: pablo
+# date  : Sep 16, 2011
 """
 # This recipe was taken from the old wiki.
 #
@@ -21,7 +24,3 @@ class PageGetter(ScrapyHTTPPageGetter):
 class HTTPClientFactory(ScrapyHTTPClientFactory):
 
      protocol = PageGetter
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: pablo
-# date  : Sep 16, 2011

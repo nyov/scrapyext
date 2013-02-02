@@ -4,6 +4,9 @@ Text-file Spider Queue
 imported from
 http://snipplr.com/view/67008/textfile-spider-queue/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: pablo
+# date  : Sep 05, 2010
 """
 # Description
 # -----------
@@ -69,7 +72,3 @@ class TextFileSpiderQueue(object):
 
     def clear(self):
         os.remove(self.FILE)
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: pablo
-# date  : Sep 05, 2010

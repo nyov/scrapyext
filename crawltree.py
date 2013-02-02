@@ -4,6 +4,9 @@ Script to print crawl tree of a spider run
 imported from
 http://snipplr.com/view/66995/script-to-print-crawl-tree-of-a-spider-run/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: pablo
+# date  : Sep 15, 2011
 """
 # This is a script to print the crawl tree of spider run.
 #
@@ -41,7 +44,3 @@ def main():
     print_urls(allurls, 'None')
 
 main()
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: pablo
-# date  : Sep 15, 2011

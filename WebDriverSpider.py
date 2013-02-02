@@ -1,12 +1,18 @@
 """
-rendered javascript with webdrivers
+WebDriverSpider - rendered javascript with webdrivers
+
+This is a piece of code that use webdrivers to load&render a page with Scrapy and Selenium.
+
+This work is based on the snippets [wynbennett](http://snippets.scrapy.org/users/wynbennett/)
+[posted here](http://snippets.scrapy.org/snippets/21/) some time ago
 
 imported from
 http://snipplr.com/view/66997/rendered-javascript-with-webdrivers/
+
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: rollsappletree
+# date  : Aug 25, 2011
 """
-# This is a piece of code that use webdrivers to load&render a page with Scrapy and Selenium.
-#
-# This work is based on the snippets [wynbennett](http://snippets.scrapy.org/users/wynbennett/) [posted here](http://snippets.scrapy.org/snippets/21/) some time ago
 
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
@@ -59,7 +65,3 @@ class WebDriverSpider(CrawlSpider):
 
         #something u can do only with webdrivers
         item['thatDiv'] = sel.find_element_by_id("thatDiv")
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: rollsappletree
-# date  : Aug 25, 2011

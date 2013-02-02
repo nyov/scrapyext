@@ -1,21 +1,28 @@
 """
 Run Scrapy crawler in a thread
+- works on Scrapy 0.8
 
 imported from
 http://snipplr.com/view/67015/run-scrapy-crawler-in-a-thread/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: pablo
+# date  : Aug 11, 2010
 """
-# When you run the Scrapy crawler from a program, the code blocks until the Scrapy crawler is finished. This is due to how Twisted (the underlying asynchronous network library) works. This prevents using the Scrapy crawler from scripts or other code.
+# When you run the Scrapy crawler from a program, the code blocks
+# until the Scrapy crawler is finished. This is due to how Twisted
+# (the underlying asynchronous network library) works.
+# This prevents using the Scrapy crawler from scripts or other code.
 #
-# To circumvent this issue you can run the Scrapy crawler in a thread with this code.
+# To circumvent this issue you can run the Scrapy crawler in a thread
+# with this code.
 #
-# Keep in mind that this code is mainly for illustrative purposes and far from production ready.
+# Keep in mind that this code is mainly for illustrative purposes and
+# far from production ready.
 #
-# Also the code was only tested with Scrapy 0.8, and will probably need some adjustments for newer versions (since the core API isn't stable yet), but you get the idea.
-
-"""
-Code to run Scrapy crawler in a thread - works on Scrapy 0.8
-"""
+# Also the code was only tested with Scrapy 0.8, and will probably
+# need some adjustments for newer versions (since the core API isn't
+# stable yet), but you get the idea.
 
 import threading, Queue
 
@@ -77,12 +84,8 @@ crawler = CrawlerThread()
 print "Starting crawler thread..."
 crawler.start()
 print "Crawling somedomain.com...."
-crawler.crawl('somedomain.com) # blocking call
+crawler.crawl('somedomain.com') # blocking call
 print "Crawling anotherdomain.com..."
 crawler.crawl('anotherdomain.com') # blocking call
 print "Stopping crawler thread..."
 crawler.stop()
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: pablo
-# date  : Aug 11, 2010

@@ -7,8 +7,6 @@ http://snipplr.com/view/65894/scrapy-pipeline-class-to-store-scraped-data-in-mon
 author: hlongmore
 """
 
-# Standard Python library imports
-
 # 3rd party modules
 import pymongo
 

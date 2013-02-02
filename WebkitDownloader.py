@@ -1,14 +1,19 @@
 """
-Rendered/interactive javascript with gtk/webkit/jswebkit
+WebkitDownloader - rendered/interactive javascript with gtk/webkit/jswebkit
+
+This is a downloader middleware that can be used to get rendered javascript
+pages using webkit. This could be extended to handle form requests and load
+errors, but this is the bare bones code to get it done.
+The advantage over the selenium based approachs I've seen is that it only
+makes one request and you don't have to set up selenium.
 
 imported from
 http://snipplr.com/view/66996/renderedinteractive-javascript-with-gtkwebkitjswebkit/
+
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: jdwilson
+# date  : Sep 06, 2011
 """
-# This is a downloader middleware that can be used to get rendered javascript pages using webkit.
-#
-# this could be extended to handle form requests and load errors, but this is the bare bones code to get it done.
-#
-# the advantage over the selenium based approachs I've seen is that it only makes one request and you don't have to set up selenium.
 
 from scrapy.http import Request, FormRequest, HtmlResponse
 
@@ -26,7 +31,3 @@ class WebkitDownloader( object ):
             js = jswebkit.JSContext( webview.get_main_frame().get_global_context() )
             renderedBody = str( js.EvaluateScript( 'document.documentElement.innerHTML' ) )
             return HtmlResponse( request.url, body=renderedBody )
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: jdwilson
-# date  : Sep 06, 2011

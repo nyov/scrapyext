@@ -4,13 +4,16 @@ Django and Scrapy without using DjangoItem
 imported from
 http://snipplr.com/view/66985/django-and-scrapy-without-using-djangoitem/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: redtricycle
+# date  : Nov 27, 2011
 """
-# # django-admin.py startproject djangoapp
-# # Create your django model: django startapp website
-# # Edit scrapy settings.py with method to point to Django environment
-# # Create a pipeline that accesses Django using the model.save() method
+# django-admin.py startproject djangoapp
+# Create your django model: django startapp website
+# Edit scrapy settings.py with method to point to Django environment
+# Create a pipeline that accesses Django using the model.save() method
 
-***settings.py***
+# ***settings.py***
 
 import os
 ITEM_PIPELINES = ['myapp.pipelines.DjangoPipeline']
@@ -29,7 +32,8 @@ def setup_django_env(path):
 current_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 setup_django_env(os.path.join(current_dir, '../djangoapp/'))
 
-***pipelines.py***
+# ***pipelines.py***
+
 from djangoapp.websites.models import Website
 from django.db.utils import IntegrityError
 
@@ -45,7 +49,7 @@ class DjangoPipeline(object):
           raise DropItem("Contains duplicate domain: %s" % item['link'][0])
         return item
 
-***djangoapp model***
+# ***djangoapp model***
 
 from django.db import models
 
@@ -55,7 +59,3 @@ class Website(models.Model):
 
     def __unicode__(self):
             return u"%s" % self.link
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: redtricycle
-# date  : Nov 27, 2011

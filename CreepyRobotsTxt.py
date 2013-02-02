@@ -1,21 +1,6 @@
 """
-robot exclusion rules parser
+CreepyRobotsTxt - robot exclusion rules parser
 
-imported from
-http://snipplr.com/view/67002/robot-exclusion-rules-parser/
-
-"""
-# This is a middleware to respect robots.txt policies. To activate it you must
-# enable this middleware and enable the ROBOTSTXT_OBEY setting. This version uses
-# the improved robotsexclusionrulesparse which can handle GYM2008 wildcards and
-# such.
-#
-# Also note, this middleware implicitly assumes one spider will crawl one domain
-# with one robots.txt file.  This may or may not be true for your application.
-# Using this approach, the robots.txt file is downloaded only once for each spider
-# type and fewer page requests that violate robots.txt occur
-
-"""
 This is a middleware to respect robots.txt policies. To activate it you must
 enable this middleware and enable the ROBOTSTXT_OBEY setting. This version uses
 the improved robotsexclusionrulesparse which can handle GYM2008 wildcards and
@@ -25,6 +10,13 @@ Also note, this middleware implicitly assumes one spider will crawl one domain
 with one robots.txt file.  This may or may not be true for your application.
 Using this approach, the robots.txt file is downloaded only once for each spider
 type and fewer page requests that violate robots.txt occur
+
+imported from
+http://snipplr.com/view/67002/robot-exclusion-rules-parser/
+
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: kurtjx
+# date  : Apr 12, 2011
 
 """
 
@@ -81,7 +73,3 @@ class CreepyRobotsTxt(object):
         if not self._spider_netlocs.has_key(spider.name):
             self._spider_netlocs[spider.name] = set()
             self._useragents[spider.name] = spider.settings['USER_AGENT']
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: kurtjx
-# date  : Apr 12, 2011

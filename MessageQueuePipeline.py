@@ -4,8 +4,13 @@ Submit scraped items to Message Queue (amqp)
 imported from
 http://snipplr.com/view/66984/submit-scraped-items-to-message-queue-amqp/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: zsquare
+# date  : Jan 07, 2012
 """
-# This pipeline enqueues scraped items to a message queue. It depends on the [carrot](http://ask.github.com/carrot/genindex.html) library. [Gist](https://gist.github.com/1574231)
+# This pipeline enqueues scraped items to a message queue.
+# It depends on the [carrot](http://ask.github.com/carrot/genindex.html)
+# library. [Gist](https://gist.github.com/1574231)
 
 from scrapy.xlib.pydispatch import dispatcher
 from scrapy import signals
@@ -49,7 +54,3 @@ class MessageQueuePipeline(object):
     def _process_item(self, item, spider):
         self.publisher.send({"scraped_data": self.encoder.encode(dict(item))})
         return item
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: zsquare
-# date  : Jan 07, 2012

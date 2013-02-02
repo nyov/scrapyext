@@ -1,17 +1,24 @@
 """
-Scrapy snippet to gather RSS feeds on a page(using feedparser)
+RSSSpider - gather RSS feeds on a page using feedparser
+
+This is a spider that can crawl RSS feeds in a version independent manner.
+It uses Mark pilgrim's excellent feedparser utility to parse RSS feeds.
+You can read about the nightmares of  RSS incompatibility [here](http://diveintomark.org/archives/2004/02/04/incompatible-rss)
+and  download feedparser that strives to resolve it from [here](http://feedparser.org/docs/)
+The scripts processes only certain elements in the feeds(title, link and summary)
+The items may be saved in the Item pipeline which I leave to you.
+
+Please let me know about any discrepencies you may find in the technical and functional aspects of this scipt.
+
+-Sid
 
 imported from
 http://snipplr.com/view/67003/scrapy-snippet-to-gather-rss-feeds-on-a-pageusing-feedparser/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: itissid
+# date  : Feb 20, 2011
 """
-# This is a spider that can crawl RSS feeds in a version independent manner. it uses Mark pilgrim's excellent feedparser utility to parse RSS feeds. You can read about the nightmares of  RSS incompatibility [here](http://diveintomark.org/archives/2004/02/04/incompatible-rss) and  download feedparser that strives to resolve it from [here](http://feedparser.org/docs/)
-# The scripts processes only certain elements in the feeds(title, link and summary)
-# The items may be saved in the Item pipeline which I leave to you.
-#
-# Please let me know about any discrepencies you may find in the technical and functional aspects of this scipt.
-#
-# -Sid
 
 from scrapy.spider import BaseSpider
 
@@ -22,6 +29,23 @@ import feedparser
 import re
 import urlparse
 
+
+class MalformedURLException(Exception):
+	def __init__(self, value):
+		self.value = value
+	def __str__(self):
+		return repr(self.value)
+
+
+class RssFeedItem(Item):
+	title = Field()# the Title of the feed
+	link = Field()# the URL to the web site(not the feed)
+	summary = Field();# short description of feed
+	entries = Field();# will contain the RSSEntrItems
+
+
+class RssEntryItem(RssFeedItem):
+	published = Field()
 
 
 class RSSSpider(BaseSpider):
@@ -134,24 +158,3 @@ class RSSSpider(BaseSpider):
             self._date_pattern.search(dateString).groups()
         return (int(year), int(month), int(day), \
                 int(hour), int(minute), int(second), 0, 0, 0);
-
-
-
-class MalformedURLException(Exception):
-	def __init__(self, value):
-		self.value = value
-	def __str__(self):
-		return repr(self.value)
-
-class RssFeedItem(Item):
-	title = Field()# the Title of the feed
-	link = Field()# the URL to the web site(not the feed)
-	summary = Field();# short description of feed
-	entries = Field();# will contain the RSSEntrItems
-
-class RssEntryItem(RssFeedItem):
-	published = Field()
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: itissid
-# date  : Feb 20, 2011

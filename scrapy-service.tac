@@ -4,8 +4,13 @@ scrapy-service.tac (Twisted Application Framework)
 imported from
 http://snipplr.com/view/67011/scrapyservicetac-twisted-application-framework/
 
+# Snippet imported from snippets.scrapy.org (which no longer works)
+# author: pablo
+# date  : Aug 26, 2010
 """
-# This is a tac file that can be used for launching Scrapy as a service (in the [Twisted Application Framework](http://twistedmatrix.com/documents/current/core/howto/application.html) ) using twistd.
+# This is a tac file that can be used for launching Scrapy as a service
+# (in the [Twisted Application Framework](http://twistedmatrix.com/documents/current/core/howto/application.html) )
+# using twistd.
 #
 # You can start the service with:
 #
@@ -41,7 +46,3 @@ def get_application(logfile, loglevel=log.DEBUG):
     return app
 
 application = get_application('scrapy.log')
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: pablo
-# date  : Aug 26, 2010
