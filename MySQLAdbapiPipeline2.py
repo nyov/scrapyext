@@ -1,5 +1,5 @@
 """
-MySQL Pipeline
+MySQLAdbapiPipeline
 
 imported from
 http://snipplr.com/view/66986/mysql-pipeline/
@@ -11,15 +11,21 @@ http://snipplr.com/view/66986/mysql-pipeline/
 # Cannot use this to create the table, must have table already created
 
 from twisted.enterprise import adbapi
-import datetime
 import MySQLdb.cursors
+import datetime
+
 
 class MySQLAdbapiPipeline(object):
 
     def __init__(self):
-        self.dbpool = adbapi.ConnectionPool('MySQLdb', db='mydb',
-                user='myuser', passwd='mypass', cursorclass=MySQLdb.cursors.DictCursor,
-                charset='utf8', use_unicode=True)
+        self.dbpool = adbapi.ConnectionPool('MySQLdb',
+            db='mydb',
+            user='myuser',
+            passwd='mypass',
+            cursorclass=MySQLdb.cursors.DictCursor,
+            charset='utf8',
+            use_unicode=True,
+        )
 
     def process_item(self, item, spider):
         # run db query in thread pool

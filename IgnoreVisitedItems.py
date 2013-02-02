@@ -1,5 +1,9 @@
 """
-Middleware to avoid re-visiting already visited items
+IgnoreVisitedItems
+
+This middleware can be used to avoid re-visiting already visited items,
+which can be useful for speeding up the scraping for projects with
+immutable items, ie. items that, once scraped, don't change.
 
 imported from
 http://snipplr.com/view/67018/middleware-to-avoid-revisiting-already-visited-items/
@@ -8,9 +12,6 @@ http://snipplr.com/view/67018/middleware-to-avoid-revisiting-already-visited-ite
 # author: pablo
 # date  : Aug 10, 2010
 """
-# This middleware can be used to avoid re-visiting already visited
-# items, which can be useful for speeding up the scraping for
-# projects with immutable items, ie. items that, once scraped, don't change.
 
 from scrapy import log
 from scrapy.http import Request

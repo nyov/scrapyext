@@ -1,6 +1,10 @@
 """
 Downloader middleware to redirect to rel=canonical urls
 
+A downloader middleware automatically to redirect pages containing a
+rel=canonical in their contents to the canonical url (if the page itself
+is not the canonical one).
+
 imported from
 http://snipplr.com/view/67009/downloader-middleware-to-redirect-to-relcanonical-urls/
 
@@ -8,9 +12,6 @@ http://snipplr.com/view/67009/downloader-middleware-to-redirect-to-relcanonical-
 # author: pablo
 # date  : Aug 27, 2010
 """
-# A downloader middleware automatically to redirect pages containing a
-# rel=canonical in their contents to the canonical url (if the page itself
-# is not the canonical one).
 
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.utils.url import url_is_from_spider

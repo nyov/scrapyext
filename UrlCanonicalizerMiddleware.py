@@ -1,5 +1,7 @@
 """
-URL Canonicalizer Spider middleware
+UrlCanonicalizerMiddleware
+
+A spider middleware to canonicalize the urls of all requests generated from a spider.
 
 imported from
 http://snipplr.com/view/67007/url-canonicalizer-spider-middleware/
@@ -8,7 +10,6 @@ http://snipplr.com/view/67007/url-canonicalizer-spider-middleware/
 # author: pablo
 # date  : Sep 07, 2010
 """
-# A spider middleware to canonicalize the urls of all requests generated from a spider.
 
 from scrapy.http import Request
 from scrapy.utils.url import canonicalize_url

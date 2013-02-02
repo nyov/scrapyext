@@ -12,6 +12,7 @@ http://snipplr.com/view/66984/submit-scraped-items-to-message-queue-amqp/
 # author: zsquare
 # date  : Jan 07, 2012
 """
+
 from scrapy.xlib.pydispatch import dispatcher
 from scrapy import signals
 from scrapy.exceptions import DropItem

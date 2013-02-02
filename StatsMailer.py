@@ -1,5 +1,5 @@
 """
-StatsDump extension sends an email and prints stats to stdout when a engine finishes scraping.
+StatsMailer extension sends an email and prints stats to stdout when a engine finishes scraping.
 
 Use STATSMAILER_RCPTS setting to give the recipient mail address
 
@@ -10,7 +10,6 @@ http://snipplr.com/view/66990/my-approach-to-stats-extension/
 # author: dchaplinsky
 # date  : Oct 07, 2011
 """
-# Gather global stats and sending it via email/outputting to stdout when scrapy is done.
 
 from scrapy.xlib.pydispatch import dispatcher
 from datetime import datetime
@@ -21,7 +20,7 @@ from scrapy.conf import settings
 
 from pprint import pprint
 
-class StatsDump(object):
+class StatsMailer(object):
     def __init__(self):
         self.recipients = settings.getlist("STATSMAILER_RCPTS")
 

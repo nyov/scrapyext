@@ -22,6 +22,7 @@ import webkit
 import jswebkit
 
 class WebkitDownloader( object ):
+
     def process_request( self, request, spider ):
         if( type(request) is not FormRequest ):
             webview = webkit.WebView()

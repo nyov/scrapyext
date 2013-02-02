@@ -1,6 +1,8 @@
 """
 Text-file Spider Queue
 
+*DEFUNCT*
+
 imported from
 http://snipplr.com/view/67008/textfile-spider-queue/
 

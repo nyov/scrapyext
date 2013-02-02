@@ -1,6 +1,10 @@
 """
 Avoid downloading pages which exceed a certain size
 
+You can do this by overriding the Scrapy HTTP Client Factory, with the following (undocumented) setting:
+
+    DOWNLOADER_HTTPCLIENTFACTORY = 'myproject.downloader.LimitSizeHTTPClientFactory'
+
 imported from
 http://snipplr.com/view/66993/avoid-downloading-pages-which-exceed-a-certain-size/
 
@@ -8,12 +12,6 @@ http://snipplr.com/view/66993/avoid-downloading-pages-which-exceed-a-certain-siz
 # author: pablo
 # date  : Sep 16, 2011
 """
-# This snippet was taken from the old wiki.
-#
-# You can do this by overriding the Scrapy HTTP Client Factory, with the following (undocumented) setting:
-#
-#     DOWNLOADER_HTTPCLIENTFACTORY = 'myproject.downloader.LimitSizeHTTPClientFactory'
-#
 
 MAX_RESPONSE_SIZE = 1048576 # 1Mb
 

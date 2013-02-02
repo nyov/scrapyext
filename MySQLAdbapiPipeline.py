@@ -1,5 +1,5 @@
 """
-Async Twisted Db Pipeline
+MySQLAdbapiPipeline
 
 imported from
 http://snipplr.com/view/66989/async-twisted-db-pipeline/
@@ -8,11 +8,10 @@ http://snipplr.com/view/66989/async-twisted-db-pipeline/
 # author: stav
 # date  : Nov 16, 2011
 """
-# This pipeline uses a shared database pool to conserve resources
-# during asynchronous item processing.
 
-import MySQLdb.cursors
 from twisted.enterprise import adbapi
+import MySQLdb.cursors
+from project.items import MyItem as Item
 
 class MySQLAdbapiPipeline(object):
 
@@ -28,10 +27,10 @@ class MySQLAdbapiPipeline(object):
             passwd='password',
             cursorclass=MySQLdb.cursors.DictCursor,
             charset='utf8',
-            use_unicode=True
-            )
+            use_unicode=True,
+        )
 
-    def process_item(self, spider, item):
+    def process_item(self, item, spider):
         """
         Run db query in thread pool and call :func:`_conditional_insert`.
         We only want to process Items of type `InventoryItem`.
@@ -42,7 +41,7 @@ class MySQLAdbapiPipeline(object):
         :type item: Item
         :returns:  Item
         """
-        if isinstance(item, InventoryItem):
+        if isinstance(item, Item):
             query = self.dbpool.runInteraction(self._conditional_insert, item)
             query.addErrback(self._database_error, item)
 
@@ -98,4 +97,4 @@ class MySQLAdbapiPipeline(object):
         """
         Log an exception to the Scrapy log buffer.
         """
-        print "Database error: ", e
+        log.err(e)

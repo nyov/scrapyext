@@ -31,10 +31,10 @@ class WebDriverSpider(CrawlSpider):
 
     rules = (
         Rule(SgmlLinkExtractor(allow=('\.html', ), allow_domains=('yourDomain.com', )), callback='parse_page',follow=False),
-        )
+    )
 
-    def __init__(self):
-        CrawlSpider.__init__(self)
+    def __init__(self, *a, **kw):
+        super(WebDriverSpider, self).__init__(*a, **kw)
         self.verificationErrors = []
         #create a profile with specific add-ons
         #and do this. Firefox to load it

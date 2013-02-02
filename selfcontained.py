@@ -1,9 +1,17 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 """
 Self-contained script to crawl a site
 
 This scripts shows how to crawl a site without settings up a complete project.
 
 Note: the `crawler.start()` can't be called more than once due twisted's reactor limitation.
+
+author: Rolando Espinoza La fuente
+
+Changelog:
+    24/07/2011 - updated to work with scrapy 13.0dev
+    25/08/2010 - initial version. works with scrapy 0.9
 
 imported from
 http://snipplr.com/view/67012/selfcontained-script-to-crawl-a-site-updated-scrapy-130dev/
@@ -12,13 +20,6 @@ http://snipplr.com/view/67012/selfcontained-script-to-crawl-a-site-updated-scrap
 # author: darkrho
 # date  : Aug 25, 2010
 """
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# author: Rolando Espinoza La fuente
-#
-# Changelog:
-#     24/07/2011 - updated to work with scrapy 13.0dev
-#     25/08/2010 - initial version. works with scrapy 0.9
 
 from scrapy.contrib.loader import XPathItemLoader
 from scrapy.item import Item, Field

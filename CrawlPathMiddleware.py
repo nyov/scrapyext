@@ -1,6 +1,40 @@
 """
 Control the crawl path of a spider
 
+This is a piece of SpiderMiddleware to control the crawl path of a CrawlSpider-like spider.  It works by dropping
+some links extracted from certain pages.  The idea is to get a bit more fine-grained control than using
+LinkExtractors alone because with this middleware you can set different rules to be applied on different pages.
+
+You do this with a series of regular expressions which define the path that the spider is allowed to take.
+Specifically, you put a list of tuples in your settings.py file of the form:
+  (fromUrlPattern, [allowedToURLs], [denyToURLs]).
+
+The allow / deny mechanism works similarly to the one Scrapy uses in LinkExtractors.  Each tuple says something along
+the lines of:
+
+    If a link was gathered at a page matching the regex in fromUrlPattern
+     Keep it as long as the link's target URL matches at least one pattern in [allowedToURLs]
+     Unless the link's target URL also matches at least one pattern in [denyToURLs]
+
+Each 'from' page is handled by the first tuple whose fromUrlPattern matches its URL.
+If no tuple matches the URL for the 'from' page, CrawlPathMiddleware ignores that page and doesn't do drop any of
+its extracted links.
+
+If you leave [allowedToURLs] as either '' or [], it allows all URLs.  This is the same as passing [r'.*'].  This is
+useful if you want to have a deny rule without an allow rule.
+
+If you leave [allowedToURLs] as None, it doesn't allow any URLs.  This is the same as passing something like [r'a^']
+and is useful if you want to designate a certain page as a dead end.
+
+If you leave [denyToURLs] as either '', [], or None, it doesn't deny any URLs.  This is the same as passing something
+like [r'a^'] and is useful if you want to have an allow rule without a deny rule.
+
+You can also provide a string containing a single regex instead of a list of regexes for [allowedToURLs] or
+[denyToURLs].  For example, [r'.*my_regex.*'] and r'.*my_regex.*' do the same thing for [allowedToURLs] and
+[denyToURLs].
+
+See the settings.py code for examples.
+
 imported from
 http://snipplr.com/view/66983/crawlpathmiddleware-easily-control-the-crawl-path-of-a-spider/
 
@@ -8,39 +42,6 @@ http://snipplr.com/view/66983/crawlpathmiddleware-easily-control-the-crawl-path-
 # author: kevinbache
 # date  : May 11, 2012
 """
-# This is a piece of SpiderMiddleware to control the crawl path of a CrawlSpider-like spider.  It works by dropping
-# some links extracted from certain pages.  The idea is to get a bit more fine-grained control than using
-# LinkExtractors alone because with this middleware you can set different rules to be applied on different pages.
-#
-# You do this with a series of regular expressions which define the path that the spider is allowed to take.
-# Specifically, you put a list of tuples in your settings.py file of the form:
-#    (fromUrlPattern, [allowedToURLs], [denyToURLs]).
-#
-# The allow / deny mechanism works similarly to the one Scrapy uses in LinkExtractors.  Each tuple says something along
-# the lines of:
-#
-# `   If a link was gathered at a page matching the regex in fromUrlPattern
-#      Keep it as long as the link's target URL matches at least one pattern in [allowedToURLs]
-#      Unless the link's target URL also matches at least one pattern in [denyToURLs]`
-#
-# Each 'from' page is handled by the first tuple whose fromUrlPattern matches its URL.
-# If no tuple matches the URL for the 'from' page, CrawlPathMiddleware ignores that page and doesn't do drop any of
-# its extracted links.
-#
-# If you leave [allowedToURLs] as either '' or [], it allows all URLs.  This is the same as passing [r'.*'].  This is
-# useful if you want to have a deny rule without an allow rule.
-#
-# If you leave [allowedToURLs] as None, it doesn't allow any URLs.  This is the same as passing something like [r'a^']
-# and is useful if you want to designate a certain page as a dead end.
-#
-# If you leave [denyToURLs] as either '', [], or None, it doesn't deny any URLs.  This is the same as passing something
-# like [r'a^'] and is useful if you want to have an allow rule without a deny rule.
-#
-# You can also provide a string containing a single regex instead of a list of regexes for [allowedToURLs] or
-# [denyToURLs].  For example, [r'.*my_regex.*'] and r'.*my_regex.*' do the same thing for [allowedToURLs] and
-# [denyToURLs].
-#
-# See the settings.py code for examples.
 
 # =======================
 # ===== settings.py =====
@@ -89,45 +90,9 @@ PATH_DEBUG = True
 # This number is only about making the log pretty and readable.  Adjust it as you like.
 PATH_DEBUG_URL_LENGTH = 95
 
-
-
 # ========================
 # ===== crawlpath.py =====
 # ========================
-
-# This is a piece of SpiderMiddleware to control the crawl path of a CrawlSpider-like spider.  It works by dropping
-# some links extracted from certain pages.  The idea is to get a bit more fine-grained control than using
-# LinkExtractors alone because with this middleware you can set different rules to be applied on different pages.
-#
-# You do this with a series of regular expressions which define the path that the spider is allowed to take.
-# Specifically, you put a list of tuples in your settings.py file of the form:
-#   (fromUrlPattern, [allowedToURLs], [denyToURLs]).
-#
-# The allow / deny mechanism works similarly to the one Scrapy uses in LinkExtractors.  Each tuple says something along
-# the lines of:
-#
-#   If a link was gathered at a page matching the regex in fromUrlPattern
-#     Keep it as long as the link's target URL matches at least one pattern in [allowedToURLs]
-#     Unless the link's target URL also matches at least one pattern in [denyToURLs]
-#
-# Each 'from' page is handled by the first tuple whose fromUrlPattern matches its URL.
-# If no tuple matches the URL for the 'from' page, CrawlPathMiddleware ignores that page and doesn't do drop any of
-# its extracted links.
-#
-# If you leave [allowedToURLs] as either '' or [], it allows all URLs.  This is the same as passing [r'.*'].  This is
-# useful if you want to have a deny rule without an allow rule.
-#
-# If you leave [allowedToURLs] as None, it doesn't allow any URLs.  This is the same as passing something like [r'a^']
-# and is useful if you want to designate a certain page as a dead end.
-#
-# If you leave [denyToURLs] as either '', [], or None, it doesn't deny any URLs.  This is the same as passing something
-# like [r'a^'] and is useful if you want to have an allow rule without a deny rule.
-#
-# You can also provide a string containing a single regex instead of a list of regexes for [allowedToURLs] or
-# [denyToURLs].  For example, [r'.*my_regex.*'] and r'.*my_regex.*' do the same thing for [allowedToURLs] and
-# [denyToURLs].
-#
-# See the settings.py code for examples.
 
 from scrapy.http.request import Request
 import re
