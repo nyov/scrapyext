@@ -1,5 +1,19 @@
+#!/usr/bin/python
 """
 Script to print crawl tree of a spider run
+
+This is a script to print the crawl tree of spider run.
+
+Usage example:
+
+    $ python crawltree.py myspider.log
+    None
+      http://www.example.com/start_page1
+        http://www.example.com/second_page
+        http://www.example.com/another_page
+    None
+      http://www.example.com/start_page2
+        http://www.example.com/yet_another_page
 
 imported from
 http://snipplr.com/view/66995/script-to-print-crawl-tree-of-a-spider-run/
@@ -8,20 +22,6 @@ http://snipplr.com/view/66995/script-to-print-crawl-tree-of-a-spider-run/
 # author: pablo
 # date  : Sep 15, 2011
 """
-# This is a script to print the crawl tree of spider run.
-#
-# Usage example:
-#
-#     $ python ctree.py myspider.log
-#     None
-#       http://www.example.com/start_page1
-#         http://www.example.com/second_page
-#         http://www.example.com/another_page
-#     None
-#       http://www.example.com/start_page2
-#         http://www.example.com/yet_another_page
-
-#!/usr/bin/env python
 
 import fileinput, re
 from collections import defaultdict

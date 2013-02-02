@@ -1,6 +1,20 @@
 """
-Run Scrapy crawler in a thread
-- works on Scrapy 0.8
+Run Scrapy crawler in a thread - works on Scrapy 0.8
+
+When you run the Scrapy crawler from a program, the code blocks
+until the Scrapy crawler is finished. This is due to how Twisted
+(the underlying asynchronous network library) works.
+This prevents using the Scrapy crawler from scripts or other code.
+
+To circumvent this issue you can run the Scrapy crawler in a thread
+with this code.
+
+Keep in mind that this code is mainly for illustrative purposes and
+far from production ready.
+
+Also the code was only tested with Scrapy 0.8, and will probably
+need some adjustments for newer versions (since the core API isn't
+stable yet), but you get the idea.
 
 imported from
 http://snipplr.com/view/67015/run-scrapy-crawler-in-a-thread/
@@ -9,20 +23,6 @@ http://snipplr.com/view/67015/run-scrapy-crawler-in-a-thread/
 # author: pablo
 # date  : Aug 11, 2010
 """
-# When you run the Scrapy crawler from a program, the code blocks
-# until the Scrapy crawler is finished. This is due to how Twisted
-# (the underlying asynchronous network library) works.
-# This prevents using the Scrapy crawler from scripts or other code.
-#
-# To circumvent this issue you can run the Scrapy crawler in a thread
-# with this code.
-#
-# Keep in mind that this code is mainly for illustrative purposes and
-# far from production ready.
-#
-# Also the code was only tested with Scrapy 0.8, and will probably
-# need some adjustments for newer versions (since the core API isn't
-# stable yet), but you get the idea.
 
 import threading, Queue
 

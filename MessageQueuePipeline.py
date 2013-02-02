@@ -1,6 +1,10 @@
 """
 Submit scraped items to Message Queue (amqp)
 
+This pipeline enqueues scraped items to a message queue.
+It depends on the [carrot](http://ask.github.com/carrot/genindex.html)
+library. [Gist](https://gist.github.com/1574231)
+
 imported from
 http://snipplr.com/view/66984/submit-scraped-items-to-message-queue-amqp/
 
@@ -8,10 +12,6 @@ http://snipplr.com/view/66984/submit-scraped-items-to-message-queue-amqp/
 # author: zsquare
 # date  : Jan 07, 2012
 """
-# This pipeline enqueues scraped items to a message queue.
-# It depends on the [carrot](http://ask.github.com/carrot/genindex.html)
-# library. [Gist](https://gist.github.com/1574231)
-
 from scrapy.xlib.pydispatch import dispatcher
 from scrapy import signals
 from scrapy.exceptions import DropItem

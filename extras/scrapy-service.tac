@@ -1,6 +1,18 @@
 """
 scrapy-service.tac (Twisted Application Framework)
 
+This is a tac file that can be used for launching Scrapy as a service
+(in the [Twisted Application Framework](http://twistedmatrix.com/documents/current/core/howto/application.html) )
+using twistd.
+
+You can start the service with:
+
+    twistd -ny scrapy-service.tac
+
+And then schedule spiders with:
+
+    scrapy queue add myspider
+
 imported from
 http://snipplr.com/view/67011/scrapyservicetac-twisted-application-framework/
 
@@ -8,17 +20,6 @@ http://snipplr.com/view/67011/scrapyservicetac-twisted-application-framework/
 # author: pablo
 # date  : Aug 26, 2010
 """
-# This is a tac file that can be used for launching Scrapy as a service
-# (in the [Twisted Application Framework](http://twistedmatrix.com/documents/current/core/howto/application.html) )
-# using twistd.
-#
-# You can start the service with:
-#
-#     twistd -ny scrapy-service.tac
-#
-# And then schedule spiders with:
-#
-#     scrapy queue add myspider
 
 from twisted.application.service import Service, Application
 from twisted.python import log as txlog

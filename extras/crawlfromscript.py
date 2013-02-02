@@ -1,5 +1,16 @@
+#!/usr/bin/python
 """
 Using Scrapy from a script
+
+This snippet can be used to run scrapy spiders independent of
+scrapyd or the scrapy command line tool and use it from a script.
+
+The multiprocessing library is used in order to work around a bug
+in Twisted, in which you cannot restart an already running reactor
+or in this case a scrapy instance.
+
+[Here](http://groups.google.com/group/scrapy-users/browse_thread/thread/f332fc5b749d401a)
+is the mailing-list discussion for this snippet.
 
 imported from
 http://snipplr.com/view/67006/using-scrapy-from-a-script/
@@ -8,16 +19,7 @@ http://snipplr.com/view/67006/using-scrapy-from-a-script/
 # author: joehillen
 # date  : Oct 24, 2010
 """
-# This snippet can be used to run scrapy spiders independent of
-# scrapyd or the scrapy command line tool and use it from a script.
-#
-# The multiprocessing library is used in order to work around a bug
-# in Twisted, in which you cannot restart an already running reactor
-# or in this case a scrapy instance.
-#
-# [Here](http://groups.google.com/group/scrapy-users/browse_thread/thread/f332fc5b749d401a) is the mailing-list discussion for this snippet.
 
-#!/usr/bin/python
 import os
 os.environ.setdefault('SCRAPY_SETTINGS_MODULE', 'project.settings') #Must be at the top before other imports
 

@@ -1,6 +1,14 @@
 """
 make and filter the log file into a html file
 
+this script make the scrapy log files into a html file and generate crawl tree.error be taged red,404 be taged yellow and offsite be taged green.
+
+usage example:
+
+$htmllog.py logfile
+
+output is t.html
+
 imported from
 http://snipplr.com/view/66991/make-and-filter-the-log-file-into-a-html-file/
 
@@ -8,13 +16,6 @@ http://snipplr.com/view/66991/make-and-filter-the-log-file-into-a-html-file/
 # author: outofthink
 # date  : Sep 22, 2011
 """
-# this script make the scrapy log files into a html file and generate crawl tree.error be taged red,404 be taged yellow and offsite be taged green.
-#
-# usage example:
-#
-# $htmllog.py logfile
-#
-# output is t.html
 
 import fileinput, re, os
 from collections import defaultdict

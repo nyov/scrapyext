@@ -11,6 +11,8 @@ We can get Parsley language site parsers (parselets) from Parselets site.
 web, called Parselets. Parselets are snippets of parsing code
 written in a language called Parsley, which is a familiar combination
 of CSS, XPath, Regular Expressions, and JSON."
+(ann.: it's defunkt.
+ http://web.archive.org/web/20100107015258/http://parselets.com/ )
 
 In this example, we integrate Parsley with Scrapy using a new class
 of Item, ParsleyItem that defines its fields from a parselet code,
