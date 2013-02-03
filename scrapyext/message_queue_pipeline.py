@@ -1,16 +1,21 @@
 """
-Submit scraped items to Message Queue (amqp)
+MessageQueuePipeline
 
-This pipeline enqueues scraped items to a message queue.
-It depends on the [carrot](http://ask.github.com/carrot/genindex.html)
-library. [Gist](https://gist.github.com/1574231)
+Pipeline to submit items to an amqp Message Queue.
+It depends on the [carrot](http://ask.github.com/carrot/genindex.html) library.
 
-imported from
-http://snipplr.com/view/66984/submit-scraped-items-to-message-queue-amqp/
+    ITEM_PIPELINES = [
+        'scrapylib.message_queue_pipeline.MessageQueuePipeline',
+    ]
 
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: zsquare
-# date  : Jan 07, 2012
+Settings:
+    BROKER_HOST
+    BROKER_PORT
+    BROKER_USERID
+    BROKER_PASSWORD
+    BROKER_VIRTUAL_HOST
+    MESSAGE_Q_SERIALIZER
+
 """
 
 from scrapy.xlib.pydispatch import dispatcher
