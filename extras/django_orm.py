@@ -1,4 +1,8 @@
+"""
+Django and Scrapy
+
 # originally from http://blog.just2us.com/2012/07/setting-up-django-with-scrapy/
+"""
 
 # settings.py
 
