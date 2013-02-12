@@ -22,8 +22,11 @@ from scrapy import log
 from scrapy.conf import settings
 from scrapy.exceptions import DropItem
 
+import hashlib
+
 
 class MongoDBStorage(object):
+
 	def __init__(self):
 		self.host = settings['MONGODB_HOST']
 		self.port = settings['MONGODB_PORT']
@@ -40,22 +43,32 @@ class MongoDBStorage(object):
 		err_msg = ''
 		for field, data in item.items():
 			if not data:
-				err_msg += 'Missing %s of item from %s\n' % (field, item['url'])
+				err_msg += 'Missing %s in item\n' % (field)
 		if err_msg:
-			log.msg(err_msg)
+			err_msg += 'from %s' % (item)
+			log.msg(err_msg, level=log.INFO)
 			#raise DropItem(err_msg)
 			return item
 
 		if self._get_uniq_key() is None:
 			self.collection.insert(dict(item))
+			log.msg('Item inserted in MongoDB database %s/%s' % (self.db, self.col),
+				level=log.DEBUG, spider=spider)
 		else:
+			if self.collection.find_one({ self._get_uniq_key(): item[self._get_uniq_key()] }):
+				log.msg('Item already exists in MongoDB %s' % (item[self._get_uniq_key()]), level=log.DEBUG, spider=spider)
+				return item
+
 			self.collection.update(
+				#{ '_id': hashlib.md5(item['url']).hexdigest() },
 				{self._get_uniq_key(): item[self._get_uniq_key()]},
 				dict(item),
 				upsert=True)
+			log.msg('Item upserted in MongoDB database %s/%s' % (self.db, self.col),
+				level=log.DEBUG, spider=spider)
 
-		log.msg('Item written to MongoDB database %s/%s' % (self.db, self.col),
-			level=log.DEBUG, spider=spider)
+	#	log.msg('Item written to MongoDB database %s/%s' % (self.db, self.col),
+	#		level=log.DEBUG, spider=spider)
 
 		return item
 
@@ -66,6 +79,7 @@ class MongoDBStorage(object):
 
 
 class MongoDBGridStorage(object):
+
 	def __init__(self):
 		self.host = settings['MONGODB_HOST']
 		self.port = settings['MONGODB_PORT']
@@ -83,11 +97,13 @@ class MongoDBGridStorage(object):
 		err_msg = ''
 		for field, data in item.items():
 			if not data:
-				err_msg += 'Missing %s of item from %s\n' % (field, item['url'])
+				err_msg += 'Missing %s in item\n' % (field)
 		if err_msg:
+			err_msg += 'from %s' % (item)
 			raise DropItem(err_msg)
 
 		self.fs[spider].put(dict(item))
+
 		log.msg('Item written to MongoDB GridFS %s/%s' % (self.db, self.fs[spider]),
 			level=log.DEBUG, spider=spider)
 
