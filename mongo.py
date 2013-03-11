@@ -22,8 +22,6 @@ from scrapy import log
 from scrapy.conf import settings
 from scrapy.exceptions import DropItem
 
-import hashlib
-
 
 class MongoDBStorage(object):
 
@@ -60,7 +58,6 @@ class MongoDBStorage(object):
 				return item
 
 			self.collection.update(
-				#{ '_id': hashlib.md5(item['url']).hexdigest() },
 				{self._get_uniq_key(): item[self._get_uniq_key()]},
 				dict(item),
 				upsert=True)
