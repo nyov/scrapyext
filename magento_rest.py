@@ -2,11 +2,11 @@
 MagentoRESTPipeline
 
 MAGENTO_SERVICE_NAME = 'scraperapp' # our application name
-MAGENTO_HOST = 'http://127.0.0.1'
-MAGENTO_REQUEST_TOKEN_URL = "%s/oauth/initiate" % MAGENTO_HOST
-MAGENTO_AUTHORIZE_URL = MAGENTO_HOST + '/admin/oauth_authorize'
-MAGENTO_ACCESS_TOKEN_URL = MAGENTO_HOST + '/oauth/token'
-MAGENTO_API_BASE = MAGENTO_HOST + '/api/rest/'
+MAGENTO_HOST	   = 'http://127.0.0.1:80'
+MAGENTO_REQUEST_TOKEN_URL = '%s/oauth/initiate' % MAGENTO_HOST
+MAGENTO_AUTHORIZE_URL = '%s/admin/oauth_authorize' % MAGENTO_HOST
+MAGENTO_ACCESS_TOKEN_URL = '%s/oauth/token' % MAGENTO_HOST
+MAGENTO_API_BASE   = '%s/api/rest/' % MAGENTO_HOST
 MAGENTO_TOKEN_KEY  = 'vygdq11yzpecxqwupn1u4zwlamsrpomi' # get this from magento admin
 MAGENTO_TOKEN_SEC  = '5x5idvnc8rh4vc8lrxeg4avpge0u63dt' # get this from magento admin
 MAGENTO_ACCESS_KEY = 'm1cq8zln3fcmxafl78xizurrkpny8zrw' # get this manually first
