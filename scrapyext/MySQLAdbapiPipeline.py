@@ -2,61 +2,6 @@
 MySQLAdbapiPipeline
 
 imported from
-http://snipplr.com/view/66986/mysql-pipeline/
-
-# Snippet imported from snippets.scrapy.org (which no longer works)
-# author: redtricycle
-# date  : Nov 21, 2011
-"""
-# Cannot use this to create the table, must have table already created
-
-from twisted.enterprise import adbapi
-import MySQLdb.cursors
-import datetime
-
-
-class MySQLAdbapiPipeline(object):
-
-    def __init__(self):
-        self.dbpool = adbapi.ConnectionPool('MySQLdb',
-            db='mydb',
-            user='myuser',
-            passwd='mypass',
-            cursorclass=MySQLdb.cursors.DictCursor,
-            charset='utf8',
-            use_unicode=True,
-        )
-
-    def process_item(self, item, spider):
-        # run db query in thread pool
-        query = self.dbpool.runInteraction(self._conditional_insert, item)
-        query.addErrback(self.handle_error)
-
-        return item
-
-    def _conditional_insert(self, tx, item):
-        # create record if doesn't exist.
-        # all this block run on it's own thread
-        tx.execute("select * from websites where link = %s", (item['link'][0], ))
-        result = tx.fetchone()
-        if result:
-            log.msg("Item already stored in db: %s" % item, level=log.DEBUG)
-        else:
-            tx.execute(\
-                "insert into websites (link, created) "
-                "values (%s, %s)",
-                (item['link'][0],
-                 datetime.datetime.now())
-            )
-            log.msg("Item stored in db: %s" % item, level=log.DEBUG)
-
-    def handle_error(self, e):
-        log.err(e)
-
-"""
-MySQLAdbapiPipeline
-
-imported from
 http://snipplr.com/view/66989/async-twisted-db-pipeline/
 
 # Snippet imported from snippets.scrapy.org (which no longer works)
@@ -66,6 +11,7 @@ http://snipplr.com/view/66989/async-twisted-db-pipeline/
 
 from twisted.enterprise import adbapi
 import MySQLdb.cursors
+import datetime
 from project.items import MyItem as Item
 
 class MySQLAdbapiPipeline(object):
@@ -73,8 +19,6 @@ class MySQLAdbapiPipeline(object):
     def __init__(self):
         """
         Connect to the database in the pool.
-
-        .. note:: hardcoded db settings
         """
         self.dbpool = adbapi.ConnectionPool('MySQLdb',
             db='database',
@@ -88,7 +32,7 @@ class MySQLAdbapiPipeline(object):
     def process_item(self, item, spider):
         """
         Run db query in thread pool and call :func:`_conditional_insert`.
-        We only want to process Items of type `InventoryItem`.
+        We only want to process Items of type `Item`.
 
         :param spider: The spider that created the Item
         :type spider:  spider
@@ -97,6 +41,7 @@ class MySQLAdbapiPipeline(object):
         :returns:  Item
         """
         if isinstance(item, Item):
+            # run db query in thread pool
             query = self.dbpool.runInteraction(self._conditional_insert, item)
             query.addErrback(self._database_error, item)
 
@@ -147,6 +92,25 @@ class MySQLAdbapiPipeline(object):
                 item['cond'],
                 item['price'],
                 ) )
+
+    def _conditional_insert2(self, tx, item):
+        # create record if doesn't exist.
+        # all this block run on it's own thread
+        tx.execute("select * from websites where link = %s", (item['link'][0], ))
+        result = tx.fetchone()
+        if result:
+            log.msg("Item already stored in db: %s" % item, level=log.DEBUG)
+        else:
+            tx.execute(\
+                "insert into websites (link, created) "
+                "values (%s, %s)",
+                (item['link'][0],
+                 datetime.datetime.now())
+            )
+            log.msg("Item stored in db: %s" % item, level=log.DEBUG)
+
+    def handle_error(self, e):
+        log.err(e)
 
     def _database_error(self, e, item):
         """
