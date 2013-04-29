@@ -14,27 +14,27 @@ MAGENTO_ACCESS_SEC = 'l77q9crhx4igw8f9eq7k86nii9gv7snf' # get this manually firs
 
 """
 
-from scrapy.conf import settings
 from scrapy.utils.serialize import ScrapyJSONEncoder
 from rauth.service import OAuth1Service
 
+
 class MagentoRESTPipeline(object):
 
-	def __init__(self):
+	def __init__(self, settings):
 		"""
 		Connect to Magento REST Api using OAuth 1.0 authentication.
 		We need an ADMIN role with sufficient access to insert articles.
 		Magento API Guide: http://www.magentocommerce.com/api/rest/introduction.html
 		"""
-		self.name                = settings['MAGENTO_SERVICE_NAME']
-		self.api_url             = settings['MAGENTO_API_BASE']
-		self.request_token_url   = settings['MAGENTO_REQUEST_TOKEN_URL']
-		self.authorize_url       = settings['MAGENTO_AUTHORIZE_URL']
-		self.access_token_url    = settings['MAGENTO_ACCESS_TOKEN_URL']
-		self.consumer_key        = settings['MAGENTO_TOKEN_KEY']
-		self.consumer_secret     = settings['MAGENTO_TOKEN_SEC']
-		self.access_token        = settings['MAGENTO_ACCESS_KEY']
-		self.access_token_secret = settings['MAGENTO_ACCESS_SEC']
+		self.name                = settings.get('MAGENTO_SERVICE_NAME')
+		self.api_url             = settings.get('MAGENTO_API_BASE')
+		self.request_token_url   = settings.get('MAGENTO_REQUEST_TOKEN_URL')
+		self.authorize_url       = settings.get('MAGENTO_AUTHORIZE_URL')
+		self.access_token_url    = settings.get('MAGENTO_ACCESS_TOKEN_URL')
+		self.consumer_key        = settings.get('MAGENTO_TOKEN_KEY')
+		self.consumer_secret     = settings.get('MAGENTO_TOKEN_SEC')
+		self.access_token        = settings.get('MAGENTO_ACCESS_KEY')
+		self.access_token_secret = settings.get('MAGENTO_ACCESS_SEC')
 
 		self.oauth = OAuth1Service(
 			name = self.name,
