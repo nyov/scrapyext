@@ -1,3 +1,8 @@
+"""
+MysqlDBPipeline
+
+"""
+
 from scrapy import signals
 from scrapy import log
 from scrapy.conf import settings
@@ -10,8 +15,6 @@ import datetime
 import time
 import MySQLdb.cursors
 
-
-# MySQL Async Twisted Db Pipeline (http://snippets.scrapy.org/snippets/30/)
 class MysqlDBPipeline(object):
 
     def __init__(self):
@@ -99,21 +102,13 @@ class MysqlDBPipeline(object):
         tx.execute("SELECT * FROM products WHERE url = %s", (item['url']))
         result = tx.fetchone()
         if result:
-            log.msg("Item already stored in db: %s" % (item, result['name']), level=log.DEBUG)
-            # do update statement
-            #tx.execute(\
-            #    "UPDATE products SET "
-            #    "spider=%s, "
-            #    "name=%s "
-            #    "WHERE url = '%s'",
-            #    (item['url'][0], int(time.time()))
-            #)
+            log.msg("Item already stored in db: %s" % item, level=log.DEBUG)
         else:
             query = "insert into products "
             "(`spider`, `name`, `description`, `short_description`, `sku`, `price`, `weight`, `tax_class_id`, `ean`, `availability`, `deliverytime`, `image_link`, `unit`, `manufacturer`, `manufacturer_logo`, `category`, `categoryid`, `attributes`, `msrp`, `tier_price`, `url`, `created`, `updated`) values "
             "( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )",
             (item['spider'], item['name'], item['description'], item['short_description'], item['sku'], item['price'], item['weight'], item['tax_class_id'], item['ean'], item['availability'], item['deliverytime'], item['image_link'], item['unit'], item['manufacturer'], item['manufacturer_logo'], item['category'], item['categoryid'], item['attributes'], item['msrp'], item['tier_price'], item['url'], int(time.time()), int(time.time()))
-            log.msg("SQL Debug: %s" % query)
+            log.msg("SQL Debug: %s" % query, level=log.DEBUG)
             tx.execute(query)
             log.msg("Item stored in db: %s" % item, level=log.DEBUG)
 
