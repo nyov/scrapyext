@@ -86,10 +86,6 @@ class MagentoRESTPipeline(object):
 		# TODO: test with async / multiple spiders open
 		self.session.close()
 
-	def encode_item(self, item):
-		itemdict = dict(self._get_serialized_fields(item))
-		return self.encoder.encode(itemdict)
-
 	def process_item(self, item, spider):
 		"""
 		Push scraped items into Magento.
@@ -115,32 +111,3 @@ class MagentoRESTPipeline(object):
 		print data
 
 		return item
-
-	# taken from BaseItemExporter
-	# specific serialize for Magento products API
-	def _get_serialized_fields(self, item, default_value=None, include_empty=None):
-		"""Return the fields to export as an iterable of tuples (name,
-		serialized_value)
-		"""
-		if include_empty is None:
-			include_empty = self.export_empty_fields
-		if self.fields_to_export is None:
-			if include_empty:
-				field_iter = item.fields.iterkeys()
-			else:
-				field_iter = item.iterkeys()
-		else:
-			if include_empty:
-				field_iter = self.fields_to_export
-			else:
-				nonempty_fields = set(item.keys())
-				field_iter = (x for x in self.fields_to_export if x in \
-					nonempty_fields)
-		for field_name in field_iter:
-			if field_name in item:
-				field = item.fields[field_name]
-				value = self.serialize_field(field, field_name, item[field_name])
-			else:
-				value = default_value
-
-			yield field_name, value
