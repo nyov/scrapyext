@@ -9,10 +9,17 @@ http://snipplr.com/view/66989/async-twisted-db-pipeline/
 # date  : Nov 16, 2011
 """
 
+from scrapy import signals
+from scrapy import log
+from scrapy.conf import settings
+from scrapy.exceptions import DropItem
 from twisted.enterprise import adbapi
-import MySQLdb.cursors
+
+from project.items import MyItem as DatabaseItem
+
 import datetime
-from project.items import MyItem as Item
+import time
+import MySQLdb.cursors
 
 class MySQLAdbapiPipeline(object):
 
@@ -21,18 +28,20 @@ class MySQLAdbapiPipeline(object):
         Connect to the database in the pool.
         """
         self.dbpool = adbapi.ConnectionPool('MySQLdb',
-            db='database',
-            user='user',
-            passwd='password',
-            cursorclass=MySQLdb.cursors.DictCursor,
-            charset='utf8',
-            use_unicode=True,
+            #settings['MYSQLDB_SERVER']
+            #settings['MYSQLDB_PORT']
+            db = settings['MYSQLDB_DB'],
+            user = settings['MYSQLDB_USER'],
+            passwd = settings['MYSQLDB_PASS'],
+            cursorclass = MySQLdb.cursors.DictCursor,
+            charset = 'utf8',
+            use_unicode = True,
         )
 
     def process_item(self, item, spider):
         """
         Run db query in thread pool and call :func:`_conditional_insert`.
-        We only want to process Items of type `Item`.
+        We only want to process Items of type `DatabaseItem`.
 
         :param spider: The spider that created the Item
         :type spider:  spider
@@ -40,17 +49,17 @@ class MySQLAdbapiPipeline(object):
         :type item: Item
         :returns:  Item
         """
-        if isinstance(item, Item):
+        if isinstance(item, DatabaseItem):
             # run db query in thread pool
             query = self.dbpool.runInteraction(self._conditional_insert, item)
             query.addErrback(self._database_error, item)
 
         return item
 
-    def _conditional_insert(self, tx, item):
+    def _conditional_insert2(self, tx, item):
         """
         Insert an entry in the `log` table and update the `seller` table,
-        if neccissary, with the seller's name.
+        if necessary, with the seller's name.
 
         :param tx: Database cursor
         :type tx:  MySQLdb.cursors.DictCursor
@@ -93,7 +102,7 @@ class MySQLAdbapiPipeline(object):
                 item['price'],
                 ) )
 
-    def _conditional_insert2(self, tx, item):
+    def _conditional_insert(self, tx, item):
         # create record if doesn't exist.
         # all this block run on it's own thread
         tx.execute("select * from websites where link = %s", (item['link'][0], ))
@@ -108,9 +117,6 @@ class MySQLAdbapiPipeline(object):
                  datetime.datetime.now())
             )
             log.msg("Item stored in db: %s" % item, level=log.DEBUG)
-
-    def handle_error(self, e):
-        log.err(e)
 
     def _database_error(self, e, item):
         """

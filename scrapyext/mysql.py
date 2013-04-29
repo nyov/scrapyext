@@ -4,7 +4,7 @@ from scrapy.conf import settings
 from scrapy.exceptions import DropItem
 from twisted.enterprise import adbapi
 
-from project.items import DatabaseItem
+from project.items import MyItem as DatabaseItem
 
 import datetime
 import time
@@ -26,7 +26,7 @@ class MysqlDBPipeline(object):
             passwd = settings['MYSQLDB_PASS'],
             cursorclass = MySQLdb.cursors.DictCursor,
             charset = 'utf8',
-            use_unicode = True
+            use_unicode = True,
         )
 
     def process_item(self, item, spider):
@@ -41,6 +41,7 @@ class MysqlDBPipeline(object):
         :returns:  Item
         """
         if isinstance(item, DatabaseItem):
+            # run db query in thread pool
             query = self.dbpool.runInteraction(self._conditional_insert, item)
             query.addErrback(self._database_error, item)
 
@@ -56,7 +57,7 @@ class MysqlDBPipeline(object):
         :param item: The Item to process
         :type item: Item
         """
-        tx.execute("SELECT id, name FROM seller WHERE id = %s", (item['url']))
+        tx.execute("SELECT id, name FROM seller WHERE id = %s", (item['seller_id']))
         result = tx.fetchone()
         if result:
             log.msg("Seller already in db: %d, %s, %s, %s" % (result['id'], item['seller_id'], item['seller_name'], result['name']), level=log.DEBUG)
@@ -121,4 +122,3 @@ class MysqlDBPipeline(object):
         Log an exception to the Scrapy log buffer.
         """
         log.err(e)
-        print "Database error: ", e
