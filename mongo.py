@@ -31,11 +31,17 @@ class MongoDBStorage(object):
 		self.db = settings['MONGODB_DB']
 		self.col = settings['MONGODB_COLLECTION']
 		self.key = settings['MONGODB_UNIQ_KEY']
+
+	def open_spider(self, spider):
 		connection = Connection(self.host, self.port)
 		db = connection[self.db]
 		self.collection = db[self.col]
+
 		if self._get_uniq_key() is not None:
 			self.collection.create_index(self._get_uniq_key(), unique=True)
+
+	def close_spider(self, spider):
+		del self.collection
 
 	def process_item(self, item, spider):
 		err_msg = ''
@@ -73,6 +79,19 @@ class MongoDBStorage(object):
 		if not self.key or self.key == "":
 			return None
 		return self.key
+
+
+class ProductStorage(MongoDBStorage):
+
+	def __init__(self):
+		self.col = settings['MONGODB_PRODUCT_COLLECTION']
+		self.key = settings['MONGODB_PRODUCT_UNIQ_KEY']
+
+class ManufacturerStorage(MongoDBStorage):
+
+	def __init__(self):
+		self.col = settings['MONGODB_MANUFAC_COLLECTION']
+		self.key = settings['MONGODB_MANUFAC_UNIQ_KEY']
 
 
 class MongoDBGridStorage(object):
