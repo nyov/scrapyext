@@ -33,15 +33,17 @@ class MongoDBStorage(object):
 		self.key = settings['MONGODB_UNIQ_KEY']
 
 	def open_spider(self, spider):
-		connection = Connection(self.host, self.port)
-		db = connection[self.db]
-		self.collection = db[self.col]
+		self.connection = Connection(self.host, self.port)
+		self.database = self.connection[self.db]
+		self.collection = self.database[self.col]
 
 		if self._get_uniq_key() is not None:
 			self.collection.create_index(self._get_uniq_key(), unique=True)
 
 	def close_spider(self, spider):
 		del self.collection
+		self.connection.disconnect()
+		del self.database
 
 	def process_item(self, item, spider):
 		err_msg = ''
@@ -101,9 +103,9 @@ class MongoDBGridStorage(object):
 		self.port = settings['MONGODB_PORT']
 		self.db = settings['MONGODB_DB']
 		self.fs = {}
-		self.connection = Connection(self.host, self.port)[self.db]
 
 	def open_spider(self, spider):
+		self.connection = Connection(self.host, self.port)[self.db]
 		self.fs[spider] = GridFS(self.connection, 'storage')
 
 	def close_spider(self, spider):
