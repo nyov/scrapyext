@@ -1,25 +1,23 @@
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.engine.url import URL
+"""
+SQLAlchemy models - defines table for storing scraped data.
 
-import settings
+"""
+
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String
+
 
 DeclarativeBase = declarative_base()
 
-def db_connect():
-	"""Performs database connection using database settings from settings.py.
-
-	Returns sqlalchemy engine instance.
-	"""
-	return create_engine(URL(**settings.DATABASE))
 
 def create_db_table(engine):
 	DeclarativeBase.metadata.create_all(engine)
 
 
-### Database Model ###
-class Product(DeclarativeBase):
-	__tablename__ = "product"
+class SQLItem(DeclarativeBase):
+	"""SQLAlchemy item model"""
+	__tablename__ = "items"
 
 	id = Column(Integer, primary_key=True)
 #	title = Column('title', String)
@@ -29,8 +27,3 @@ class Product(DeclarativeBase):
 #	category = Column('category', String, nullable=True)
 #	original_price = Column('original_price', String, nullable=True)
 #	price = Column('price', String, nullable=True)
-
-class Manufacturer(DeclarativeBase):
-	__tablename__ = "manufacturer"
-
-	id = Column(Integer, primary_key=True)

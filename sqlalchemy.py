@@ -1,29 +1,54 @@
+"""
+SQLAlchemyPipeline
+
+SQLAlchemy pipeline for storing scraped items in the database
+Settings:
+
+    ITEM_PIPELINES = ['project.pipelines.SQLAlchemyPipeline']
+
+    DATABASE = {
+        'drivername': 'postgres',
+        'host': 'localhost',
+        'port': '5432',
+        'username': 'root',
+        'password': 'root',
+        'database': 'test'
+    }
+
+"""
+
+from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker
-from sqlmodels import db_connect, create_db_table
-### Database Model ###
-from sqlmodels import Product
+
+from .models import create_db_table
+from .models import SQLItem
+
+def db_connect(settings):
+	"""Database connection using database settings from settings.py.
+	Returns sqlalchemy engine instance
+	"""
+	return create_engine(URL(**settings.DATABASE))
+
 
 class SQLAlchemyPipeline(object):
 	"""Pipeline for storing scraped items in a database"""
 
-	def __init__(self):
-		"""
-		Initializes database connection and sessionmaker.
+	def __init__(self, settings):
+		"""Initializes database connection and sessionmaker.
 
 		Creates table.
 		"""
-		engine = db_connect()
+		engine = db_connect(settings)
 	#	create_db_table(engine)
-		self.Session = sessionmaker(bind=engine)
+		self.session = sessionmaker(bind=engine)
 
 	def process_item(self, item, spider):
-		"""
-		Save items in the database.
+		"""Save items in the database.
 
 		This method is called for every item pipeline component.
 		"""
-		session = self.Session()
-		sqlitem = Product(**item)
+		session = self.session()
+		sqlitem = SQLItem(**item)
 
 		try:
 			session.add(sqlitem)
