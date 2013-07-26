@@ -5,16 +5,17 @@ ITEM_PIPELINES = [
 	'project.pipelines.mongo.MongoDBStorage',
 ]
 
-MONGODB_HOST = "localhost"
-MONGODB_PORT = 27017
-MONGODB_DB = "database"
-# (not for gridfs)
-MONGODB_COLLECTION = "collection"
-#MONGODB_UNIQ_KEY = "url"
+MONGODB_URI = 'mongodb://localhost:27017'
+MONGODB_DATABASE = 'database'
+MONGODB_COLLECTION = 'collection'
+#MONGODB_UNIQUE_KEY = 'url'
 
 """
 
-from pymongo import Connection
+from pymongo import errors
+from pymongo.mongo_client import MongoClient
+from pymongo.read_preferences import ReadPreference
+
 from gridfs import GridFS
 from gridfs.errors import FileExists, GridFSError
 
@@ -26,14 +27,13 @@ from scrapy.exceptions import DropItem
 class MongoDBStorage(object):
 
 	def __init__(self):
-		self.host = settings['MONGODB_HOST']
-		self.port = settings['MONGODB_PORT']
-		self.db = settings['MONGODB_DB']
+		self.uri = settings['MONGODB_URI']
+		self.db	 = settings['MONGODB_DATABASE']
 		self.col = settings['MONGODB_COLLECTION']
-		self.key = settings['MONGODB_UNIQ_KEY']
+		self.key = settings['MONGODB_UNIQUE_KEY']
 
 	def open_spider(self, spider):
-		self.connection = Connection(self.host, self.port)
+		self.connection = MongoClient(self.uri, fsync=False, read_preference=ReadPreference.PRIMARY)
 		self.database = self.connection[self.db]
 		self.collection = self.database[self.col]
 
@@ -86,30 +86,35 @@ class MongoDBStorage(object):
 class ProductStorage(MongoDBStorage):
 
 	def __init__(self):
+		self.db	 = settings['MONGODB_PRODUCT_DATABASE']
 		self.col = settings['MONGODB_PRODUCT_COLLECTION']
-		self.key = settings['MONGODB_PRODUCT_UNIQ_KEY']
+		self.key = settings['MONGODB_PRODUCT_UNIQUE_KEY']
 
 class ManufacturerStorage(MongoDBStorage):
 
 	def __init__(self):
+		self.db	 = settings['MONGODB_MANUFAC_DATABASE']
 		self.col = settings['MONGODB_MANUFAC_COLLECTION']
-		self.key = settings['MONGODB_MANUFAC_UNIQ_KEY']
+		self.key = settings['MONGODB_MANUFAC_UNIQUE_KEY']
 
 
 class MongoDBGridStorage(object):
 
 	def __init__(self):
-		self.host = settings['MONGODB_HOST']
-		self.port = settings['MONGODB_PORT']
-		self.db = settings['MONGODB_DB']
+		self.uri = settings['MONGODB_URI']
+		self.db	 = settings['MONGODB_DATABASE']
+		self.col = settings['MONGODB_COLLECTION'] or 'fs'
 		self.fs = {}
 
 	def open_spider(self, spider):
-		self.connection = Connection(self.host, self.port)[self.db]
-		self.fs[spider] = GridFS(self.connection, 'storage')
+		self.connection = MongoClient(self.uri, fsync=False, read_preference=ReadPreference.PRIMARY)
+		self.database = self.connection[self.db]
+		self.fs[spider] = GridFS(self.database, self.col)
 
 	def close_spider(self, spider):
 		del self.fs[spider]
+		#self.connection.disconnect()
+		#del self.database
 
 	def process_item(self, item, spider):
 		err_msg = ''
