@@ -9,10 +9,42 @@ from scrapy import signals
 from scrapy.http import Headers
 from scrapy.exceptions import NotConfigured, IgnoreRequest
 from scrapy.responsetypes import responsetypes
-from scrapy.utils.request import request_fingerprint
+#from scrapy.utils.request import request_fingerprint
 from scrapy.utils.httpobj import urlparse_cached
 from scrapy.utils.misc import load_object
 from scrapy.utils.project import data_path
+
+import hashlib
+import weakref
+
+from scrapy.utils.url import canonicalize_url
+import re
+
+_fingerprint_cache = weakref.WeakKeyDictionary()
+def request_fingerprint(request, include_headers=None):
+    """
+    Return the request fingerprint.
+
+    """
+    if include_headers:
+        include_headers = tuple([h.lower() for h in sorted(include_headers)])
+    cache = _fingerprint_cache.setdefault(request, {})
+    if include_headers not in cache:
+        fp = hashlib.sha1()
+        fp.update(request.method)
+        fp.update(canonicalize_url(request.url))
+        # special xhr post body, ignore the sessionid
+        parsed_body = re.sub(r'(httpSessionId=.*?\n)', '', request.body)
+        parsed_body = re.sub(r'(scriptSessionId=.*?\n)', '', parsed_body)
+        fp.update(parsed_body or '')
+        if include_headers:
+            for hdr in include_headers:
+                if hdr in request.headers:
+                    fp.update(hdr)
+                    for v in request.headers.getlist(hdr):
+                        fp.update(v)
+        cache[include_headers] = fp.hexdigest()
+    return cache[include_headers]
 
 
 class HttpCacheMiddleware(object):
@@ -85,6 +117,11 @@ class FilesystemCacheStorage(object):
         if metadata is None:
             return # not cached
         rpath = self._get_request_path(spider, request)
+        #
+#       from scrapy import log
+#       log.msg('rpath %s' % (rpath), level=log.DEBUG, spider=spider)
+#       print rpath
+        #
         with open(join(rpath, 'response_body'), 'rb') as f:
             body = f.read()
         with open(join(rpath, 'response_headers'), 'rb') as f:
