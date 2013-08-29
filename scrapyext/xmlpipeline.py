@@ -1,6 +1,7 @@
 from scrapy.conf import settings
 from scrapy.contrib.exporter import XmlItemExporter
 
+
 # ported XmlItemExporter fix for nested items from git
 # issue: https://github.com/scrapy/scrapy/issues/66
 class XmlNestedItemExporter(XmlItemExporter):
@@ -21,19 +22,19 @@ class XmlNestedItemExporter(XmlItemExporter):
 # with fixed output ordering
 class OrderedXmlNestedItemExporter(XmlItemExporter):
 
-	# this list MUST contain all possible exporter items, currently
+	# fields in the order to be output
 	order = {'date':1, 'time':2, 'league':3, 'venue':4, 'name':5, 'score':6}
 
 	def export_item(self, item):
 		self.xg.startElement(self.item_element, {})
-		for name, value in sorted(self._get_serialized_fields(item, default_value=''), key=lambda x:self.order.__getitem__(x[0])):
+		for name, value in sorted(self._get_serialized_fields(item, default_value=''), key=lambda x:self.order.get(x[0]) or 99):
 			self._export_xml_field(name, value)
 		self.xg.endElement(self.item_element)
 
 	def _export_xml_field(self, name, serialized_value):
 		self.xg.startElement(name, {})
 		if hasattr(serialized_value, 'items'):
-			for subname, value in sorted(serialized_value.items(), key=lambda x:self.order.__getitem__(x[0])):
+			for subname, value in sorted(serialized_value.items(), key=lambda x:self.order.get(x[0]) or 99):
 				self._export_xml_field(subname, value)
 		elif hasattr(serialized_value, '__iter__'):
 			for value in serialized_value:
