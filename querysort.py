@@ -8,8 +8,17 @@ import urllib
 
 from scrapy import log
 from scrapy.http import Request
+from scrapy.exceptions import NotConfigured
 
 class QuerySortMiddleware(object):
+
+	def __init__(self, settings):
+		if not settings.getbool('QUERYSORT_ENABLED'):
+			raise NotConfigured
+
+	@classmethod
+	def from_crawler(cls, crawler):
+		return cls(crawler.settings)
 
 	def process_spider_output(self, response, result, spider):
 		for x in result:
