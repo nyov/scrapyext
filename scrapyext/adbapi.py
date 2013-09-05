@@ -26,7 +26,21 @@ class AdbapiPipeline(object):
 		( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"""
 	sql_update = """UPDATE products SET spider=%s, name=%s WHERE url='%s'"""
 
-	def __init__(self):
+	def __init__(self, settings, stats):
+		if not isinstance(settings, dict):
+			raise NotConfigured('No database connection settings found.')
+
+		self.settings = settings
+
+	@classmethod
+	def from_crawler(cls, crawler):
+		if not crawler.settings.get('DATABASE'):
+			raise NotConfigured('No database connection settings found.')
+
+		o = cls(settings=crawler.settings.get('DATABASE'), stats=crawler.stats)
+		return o
+
+	def open_spider(self, spider):
 		self.connect()
 
 	def connect(self):
@@ -35,11 +49,11 @@ class AdbapiPipeline(object):
 	#	cp = adbapi.ConnectionPool("pyPgSQL.PgSQL", database="test")
 		# MySQL
 		self.dbpool = adbapi.ConnectionPool('MySQLdb',
-			host = settings['MYSQLDB_SERVER'] or "localhost",
-			port = settings['MYSQLDB_PORT'] or 3306,
-			db = settings['MYSQLDB_DB'],
-			user = settings['MYSQLDB_USER'],
-			passwd = settings['MYSQLDB_PASS'],
+			host = self.settings.get('hostname', 'localhost'),
+			port = self.settings.get('port', 3306),
+			db = self.settings.get('database'),
+			user = self.settings.get('username'),
+			passwd = self.settings.get('password'),
 			cursorclass = MySQLdb.cursors.DictCursor,
 			charset = 'utf8',
 			use_unicode = True,
