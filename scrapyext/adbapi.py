@@ -1,5 +1,5 @@
 """
-MysqlDBPipeline
+AdbapiPipeline
 
 """
 
@@ -17,26 +17,26 @@ import MySQLdb
 import MySQLdb.cursors
 
 
-class MysqlDBPipeline(object):
+class AdbapiPipeline(object):
 
 	sql_select = """SELECT id, sku, name FROM products WHERE sku = %s"""
 	sql_create = """INSERT INTO item (`seller_idfk`, `batch_id`, `index`, `asin`, `title`, `quantity`, `cond`, `price`) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s )"""
 	sql_create_item = """INSERT INTO products
 		( `origin`, `ds`, `timestamp`, `type_id`, `attribute_set_id`, `sku`, `name`, `description`, `short_description`, `price`, `status`, `tax_class_id`, `visibility`, `weight`, `image_urls`, `supplier`, `supplier_url`, `supplier_category`, `pdf_link`, `msrp`, `unit_type`, `quantity`, `availability`, `deliverytime` ) VALUES
 		( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"""
-	sql_update = ""
+	sql_update = """UPDATE products SET spider=%s, name=%s WHERE url='%s'"""
 
 	def __init__(self):
-		"""
-		Connect to the database in the pool.
-		"""
+		self.connect()
+
+	def connect(self):
+		"""Connect to the database"""
 		# PostgreSQL PyPgSQL
 	#	cp = adbapi.ConnectionPool("pyPgSQL.PgSQL", database="test")
 		# MySQL
-	#	cp = adbapi.ConnectionPool("MySQLdb", db="test")
 		self.dbpool = adbapi.ConnectionPool('MySQLdb',
-			#settings['MYSQLDB_SERVER'] or "localhost",
-			#settings['MYSQLDB_PORT'] or 3306,
+			host = settings['MYSQLDB_SERVER'] or "localhost",
+			port = settings['MYSQLDB_PORT'] or 3306,
 			db = settings['MYSQLDB_DB'],
 			user = settings['MYSQLDB_USER'],
 			passwd = settings['MYSQLDB_PASS'],
@@ -46,10 +46,7 @@ class MysqlDBPipeline(object):
 		)
 
 	def process_item(self, item, spider):
-		"""
-		Run db query in thread pool and call :func:`_conditional_insert`.
-		We only want to process Items of type `DatabaseItem`.
-		"""
+		"""Process items of type `DatabaseItem`."""
 		if isinstance(item, DatabaseItem):
 			# run db query in thread pool
 			query = self.dbpool.runInteraction(self._conditional_op, item)
@@ -58,42 +55,34 @@ class MysqlDBPipeline(object):
 		return item
 
 	def _conditional_op(self, tx, item):
-		"""
-		Insert an entry in the `log` table and update the `seller` table,
-		if necessary, with the seller's name.
-		"""
+		"""Run transaction"""
 		# primary key check
 	#	tx.execute(self.sql_select, (item['sku']))
 	#	result = tx.fetchone()
 	#	if result:
 	#		log.msg("Item already in db: (db id) %s (sku: %s) item:\n%s" % (result['id'], result['sku'], item), level=log.DEBUG)
 	#		self.sid = result['id']
-	#		return
-	# fast fail - do not query but silently ignore duplicate key errors (querys eat too much into write performance)
+	#		return item
 
 		# add record to db
 		try:
 			self._create_item(tx, item)
 		except MySQLdb.IntegrityError:
-			pass
-	#		raise
+			raise
 	#	except MySQLdb.OperationalError, e:
 	#		raise e
 	#	except exceptions.TypeError: # wrong format, catch this
+	#		raise
 
 	def _database_error(self, e, item):
-		"""
-		Log an exception to the Scrapy log buffer.
-		"""
+		"""Log exception"""
 		log.err(e)
 
 	# database operations
 
 	def _create_item(self, tx, item):
 		#log.msg("SQL Debug: %s" % self.sql_create_item, level=log.DEBUG)
-		tx.execute(
-			self.sql_create_item,
-			(
+		tx.execute(self.sql_create_item, (
 			#	item.get('id'),
 				item.get('origin'),
 				item.get('ds', 0),
@@ -126,14 +115,7 @@ class MysqlDBPipeline(object):
 
 	def _update_item(self, item):
 		# do update
-		#tx.execute(\
-		#	 "UPDATE products SET "
-		#	 "spider=%s, "
-		#	 "name=%s "
-		#	 "WHERE url = '%s'",
-		#	 (item['url'][0], int(time.time()))
-		#)
-		pass
+		tx.execute(self.sql_update, (item['url'][0], int(time.time())) )
 
 	def _delete_item(self, item):
 		pass
