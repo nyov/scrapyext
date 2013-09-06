@@ -7,7 +7,7 @@ from scrapy.http.cookies import CookieJar
 from scrapy import log
 
 
-class CookiesMiddleware(object):
+class FixedCookiesMiddleware(object):
 	"""This middleware enables working with sites that need cookies"""
 
 	def __init__(self, debug=False):
@@ -22,6 +22,7 @@ class CookiesMiddleware(object):
 
 	def process_request(self, request, spider):
 		if 'dont_merge_cookies' in request.meta:
+			self._debug_cookie(request, spider)
 			return
 
 		cookiejarkey = request.meta.get("cookiejar")
@@ -37,6 +38,7 @@ class CookiesMiddleware(object):
 
 	def process_response(self, request, response, spider):
 		if 'dont_merge_cookies' in request.meta:
+			self._debug_set_cookie(response, spider)
 			return response
 
 		# extract cookies from Set-Cookie and drop invalid/expired cookies
