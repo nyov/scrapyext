@@ -19,6 +19,7 @@ Settings:
 
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker
+from .util.history_meta import versioned_session
 
 from .models import create_db_tables
 # SQLAlchemy models
@@ -43,6 +44,7 @@ class SQLAlchemyPipeline(object):
 		engine = db_connect(settings)
 	#	create_db_tables(engine)
 		self.session = sessionmaker(bind=engine)
+		versioned_session(self.session)
 
 	def process_item(self, item, spider):
 		"""Save items in the database.
