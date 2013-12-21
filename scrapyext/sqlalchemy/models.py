@@ -15,6 +15,7 @@ def create_db_tables(engine):
 	"""Create database tables"""
 	Base.metadata.create_all(engine)
 
+
 # SQLAlchemy models
 class SQLItem(Versioned, Base):
 	"""SQLAlchemy item model"""
@@ -34,6 +35,10 @@ class SQLItem(Versioned, Base):
 	def __eq__(self, other):
 		assert type(other) is SQLItem and other.id == self.id
 
+	def __repr__(self):
+		return '<Item(id=%r)>' % (self.id)
+
+
 class SQLArticle(Versioned, Base):
 	"""SQLAlchemy item model"""
 	__tablename__ = "article"
@@ -46,9 +51,14 @@ class SQLArticle(Versioned, Base):
 	type_id = Column(String, default=u'simple')
 	attribute_set_id = Column(Integer, default=4)
 	sku = Column(String)
+	name = Column(String(255))
 
 	def __eq__(self, other):
 		assert type(other) is SQLArticle and other.id == self.id
+
+	def __repr__(self):
+		return '<Article(id=%r, sku=%r, name=%r)>' % (self.id, self.sku, self.name)
+
 
 class SQLManufacturer(Versioned, Base):
 	"""SQLAlchemy item model"""
@@ -57,8 +67,25 @@ class SQLManufacturer(Versioned, Base):
 	# sql (relational) requirements
 	id = Column(Integer, primary_key=True)
 
-	manufacturer = Column('manufacturer', String)
-	manufacturer_logo = Column('manufacturer_logo', String)
+	manufacturer = Column(String)
+	manufacturer_logo = Column(String)
 
 	def __eq__(self, other):
 		assert type(other) is SQLManufacturer and other.id == self.id
+
+	def __repr__(self):
+		return '<Manufacturer(id=%r, manufacturer=%r)>' % (self.id, self.manufacturer)
+
+
+class SQLArticleImage(Versioned, Base):
+	"""SQLAlchemy item model"""
+	__tablename__ = "article_image"
+
+	# sql (relational) requirements
+	id = Column(Integer, primary_key=True)
+
+	def __eq__(self, other):
+		assert type(other) is SQLArticleImage and other.id == self.id
+
+	def __repr__(self):
+		return '<ArticleImage(id=%r)>' % (self.id)
