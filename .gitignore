@@ -1,0 +1,9 @@
+# temp files
+*.swp
+*.pyc
+*.*~
+
+# setuptools/distutils files
+scrapyext.egg-info
+build/
+dist/
