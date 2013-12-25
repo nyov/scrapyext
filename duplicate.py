@@ -2,6 +2,9 @@ from scrapy import log
 from scrapy import signals
 from scrapy.exceptions import DropItem
 
+from project.items import Product
+from project.items import Manufacturer
+
 class DuplicatesPipeline(object):
 
 	def __init__(self):
@@ -26,14 +29,14 @@ class DuplicateHashPipeline(object):
 		self.manufacturers = set()
 
 	def process_item(self, item, spider):
-		itype = item['itemtype']
-		if itype == 'product':
+		if isinstance(item, Product):
 			ihash = hash( pickle.dumps(item) )
 			if ihash in self.products:
 				raise DropItem("Duplicate product found: %s" % item['id'])
 			else:
 				self.products.add(ihash)
-		if itype == 'manufacturer':
+
+		if isinstance(item, Manufacturer):
 			ihash = hash( pickle.dumps(item) )
 			if ihash in self.manufacturers:
 				raise DropItem("Duplicate manufacturer found: %s" % item['id'])
