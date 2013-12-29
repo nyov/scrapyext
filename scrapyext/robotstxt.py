@@ -1,20 +1,20 @@
 """
-CreepyRobotsTxt - robot exclusion rules parser
+RobotsTxt - robot exclusion rules parser
 
 This is a middleware to respect robots.txt policies. To activate it you must
-enable this middleware and enable the ROBOTSTXT_OBEY setting. This version uses
-the improved robotsexclusionrulesparse which can handle GYM2008 wildcards and
-such.
+enable this middleware and enable the ROBOTSTXT_OBEY setting.
+
+This version uses the robotsexclusionrulesparser,
+which can handle GYM2008 wildcards and non-ASCII files.
 
 Also note, this middleware implicitly assumes one spider will crawl one domain
 with one robots.txt file.  This may or may not be true for your application.
 Using this approach, the robots.txt file is downloaded only once for each spider
 type and fewer page requests that violate robots.txt occur
 
-imported from
+originally imported from
 http://snipplr.com/view/67002/robot-exclusion-rules-parser/
 
-# Snippet imported from snippets.scrapy.org (which no longer works)
 # author: kurtjx
 # date  : Apr 12, 2011
 
@@ -31,7 +31,7 @@ from scrapy.http import Request
 from scrapy.utils.httpobj import urlparse_cached
 from scrapy.conf import settings
 
-class CreepyRobotsTxt(object):
+class RobotsTxtMiddleware(object):
     DOWNLOAD_PRIORITY = 1000
 
     def __init__(self):
@@ -49,7 +49,7 @@ class CreepyRobotsTxt(object):
             rp = self.robot_parser(request, spider)
             if rp and not rp.is_allowed(useragent, request.url):
                 log.msg("Forbidden by robots.txt: %s" % request,
-                        level=log.ERROR, spider=spider)
+                        level=log.INFO, spider=spider)
                 raise IgnoreRequest
 
     def robot_parser(self, request, spider):
