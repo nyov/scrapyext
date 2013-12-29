@@ -49,6 +49,7 @@ class ParsleySpider(CrawlSpider):
         return ParsleyItem(self.parslet_code, parslet.parse(string=response.body))
 
 
+'''
 # example youtube.com spider
 
 from scrapy.conf import settings
@@ -80,3 +81,4 @@ class YoutubeSpider(ParsleySpider):
     )
 
     parslet_code = YOUTUBE_PARSLET
+'''

@@ -7,7 +7,7 @@ You can define a user USER_AGEN_LIST in your settings and the spider will chose 
 You will have to disable the default user agent middleware and add this to your settings file.
 
     DOWNLOADER_MIDDLEWARES = {
-        'project.random_user_agent.RandomUserAgentMiddleware': 400,
+        'scrapylib.random_useragent.RandomUserAgentMiddleware': 400,
         'scrapy.contrib.downloadermiddleware.useragent.UserAgentMiddleware': None,
     }
 

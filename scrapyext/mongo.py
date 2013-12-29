@@ -1,5 +1,5 @@
 """
-MongoDBStorage
+MongoDBStorage - pipeline to store scraped data in MongoDB
 
 ITEM_PIPELINES = [
 	'project.pipelines.mongo.MongoDBStorage',

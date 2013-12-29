@@ -20,14 +20,15 @@ http://snipplr.com/view/67003/scrapy-snippet-to-gather-rss-feeds-on-a-pageusing-
 # date  : Feb 20, 2011
 """
 
+import feedparser
+import re
+import urlparse
+
 from scrapy.spider import BaseSpider
 
 from scrapy.selector import HtmlXPathSelector
 from scrapy.selector import XmlXPathSelector
 from scrapy.http import Request
-import feedparser
-import re
-import urlparse
 
 
 class MalformedURLException(Exception):

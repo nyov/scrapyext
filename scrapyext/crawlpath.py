@@ -43,12 +43,13 @@ http://snipplr.com/view/66983/crawlpathmiddleware-easily-control-the-crawl-path-
 # date  : May 11, 2012
 """
 
+'''
 # =======================
 # ===== settings.py =====
 # =======================
 
 SPIDER_MIDDLEWARES = {
-    'path.to.crawlpath_module.CrawlPathMiddleware': 550,
+    'path.to.crawlpath.CrawlPathMiddleware': 550,
 }
 
 # regular expression patterns for defining url types in shorthand
@@ -90,9 +91,7 @@ PATH_DEBUG = True
 # This number is only about making the log pretty and readable.  Adjust it as you like.
 PATH_DEBUG_URL_LENGTH = 95
 
-# ========================
-# ===== crawlpath.py =====
-# ========================
+'''
 
 from scrapy.http.request import Request
 import re
