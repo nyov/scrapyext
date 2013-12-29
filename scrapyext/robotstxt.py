@@ -1,10 +1,14 @@
 """
+RobotsTxt - robot exclusion rules parser
+
 This is a middleware to respect robots.txt policies. To activate it you must
 enable this middleware and enable the ROBOTSTXT_OBEY setting.
 
+This version uses the robotsexclusionrulesparser.
+
 """
 
-import robotparser
+from robotexclusionrulesparser import RobotExclusionRulesParser
 
 from scrapy.xlib.pydispatch import dispatcher
 
@@ -31,8 +35,8 @@ class RobotsTxtMiddleware(object):
     def process_request(self, request, spider):
         useragent = self._useragents[spider]
         rp = self.robot_parser(request, spider)
-        if rp and not rp.can_fetch(useragent, request.url):
-            log.msg("Forbidden by robots.txt: %s" % request, log.DEBUG)
+        if rp and not rp.is_allowed(useragent, request.url):
+            log.msg("Forbidden by robots.txt: %s" % request, level=log.INFO, spider=spider)
             raise IgnoreRequest
 
     def robot_parser(self, request, spider):
@@ -48,8 +52,8 @@ class RobotsTxtMiddleware(object):
         return self._parsers[netloc]
 
     def _parse_robots(self, response):
-        rp = robotparser.RobotFileParser(response.url)
-        rp.parse(response.body.splitlines())
+        rp = RobotExclusionRulesParser()
+        rp.parse(response.body)
         self._parsers[urlparse_cached(response).netloc] = rp
 
     def spider_opened(self, spider):
