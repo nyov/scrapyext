@@ -5,9 +5,11 @@ Downloader middleware to ignore URLs found by previous
 LogVisitedMiddleware runs.
 """
 
-import os.path, mmap
+import os.path
+import mmap
+
 from scrapy import log
-from scrapy.core import exceptions
+from scrapy.exceptions import IgnoreRequest
 
 class IgnoreVisitedMiddleware(object):
 	""" DownloaderMiddleware that ignores any urls found in the visited log at
@@ -23,10 +25,10 @@ class IgnoreVisitedMiddleware(object):
 		else:
 			log.msg('no visited log, all requests will be processed', level=log.DEBUG)
 			self.visited = None
-			self.visisted_map = None
+			self.visited_map = None
 
 	def __del__(self):
-		if self.visisted:
+		if self.visited:
 			self.visited.close()
 
 		if self.visited_map:
@@ -37,4 +39,4 @@ class IgnoreVisitedMiddleware(object):
 		# is faster
 		if self.visited and self.visited.find(request.url) > -1:
 			log.msg('ignoring already visited url: %s' % request.url, level=log.DEBUG)
-			raise exceptions.IgnoreRequest
+			raise IgnoreRequest
