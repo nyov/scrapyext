@@ -79,21 +79,30 @@ class SQLPipeline(object):
 			)
 			#self.paramstyle = '?'
 			#self.paramstyle = '%s'
+
+		#	import psycopg2
+		#	self.__dbpool = ConnectionPool('psycopg2', database=self.settings.get('database'),
+		#		user = self.settings.get('username'),
+		#		password = self.settings.get('password', None),
+		#		host = self.settings.get('hostname', None), # should default to unix socket
+		#		port = self.settings.get('port', '5432'),
+		#	#	cursor_factory = psycopg2.extras.DictCursor,
+		#	)
 		elif self.settings.get('drivername') == 'mysql':
 			import MySQLdb
 			from MySQLdb import cursors
 			self.__dbpool = ConnectionPool('MySQLdb', db=self.settings.get('database'),
 				user = self.settings.get('username'),
 				passwd = self.settings.get('password', None),
-				host = self.settings.get('hostname', None), # default to unix socket
-				port = self.settings.get('port', '3306'),
+				host = self.settings.get('hostname', 'localhost'), # should default to unix socket
+				port = self.settings.get('port', 3306),
 				cursorclass = cursors.DictCursor,
 				charset = 'utf8',
 				use_unicode = True,
 				# connpool settings
 				cp_reconnect = True,
 			)
-			#self.paramstyle = '?'
+			self.paramstyle = '%s'
 
 		self.queries = kwargs.get('queries')
 
@@ -141,9 +150,10 @@ class SQLPipeline(object):
 		#
 		SQL_QUERIES = [
 			('select', "SELECT $fields FROM $table:esc"),
-			('insert', "INSERT INTO $table:esc ($fields) VALUES ($values)"),
-		#	('insert', "INSERT INTO $table:esc SET $fields_values"), # INSERT INTO ... SET not supported by sqlite
-			('upsert', "INSERT OR REPLACE INTO $table:esc ($fields) VALUES ($values)"), # sqlite
+			('insert', "INSERT INTO $table:esc ($fields) VALUES ($values)"), #! mysql
+		#	('insert', "INSERT INTO $table:esc SET $fields_values"), #! sqlite
+		#	('upsert', "INSERT OR REPLACE INTO $table:esc ($fields) VALUES ($values)"), #! sqlite
+			('upsert', "REPLACE INTO $table ($fields) VALUES ($values)"), #! mysql
 		#	('upsert', "INSERT INTO $table:esc SET $fields_values ON DUPLICATE KEY UPDATE $fields_values"),
 			('deleteme', "DELETE FROM $table:esc WHERE $fields_values:and"), # exact item match required
 			# have indices?
@@ -308,3 +318,7 @@ class SQLPipeline(object):
 		else:
 			log.err(e)
 
+	def query(self, sql):
+		deferred = self.__dbpool.runQuery(sql)
+		deferred.addErrback(log.err)
+		return deferred
