@@ -53,7 +53,7 @@ class SQLPipeline(object):
 		self.settings = settings
 		self.paramstyle = ':'
 
-		if self.settings.get('drivername') == 'sqlite3' or self.settings.get('drivername') == 'sqlite':
+		if self.settings.get('drivername') == 'sqlite':
 			self.__dbpool = ConnectionPool('sqlite3', self.settings.get('database', ':memory:'),
 				# apparently the connection pool / thread pool does not do the teardown in the same thread
 				# https://twistedmatrix.com/trac/ticket/3629
@@ -69,32 +69,24 @@ class SQLPipeline(object):
 			#self.paramstyle = '?'
 			#self.paramstyle = ':'
 			#self.paramstyle = '$'
-		elif self.settings.get('drivername') == 'pgsql' or self.settings.get('drivername') == 'postgres':
-			self.__dbpool = ConnectionPool('pyPgSQL.PgSQL', database=self.settings.get('database'),
+		elif self.settings.get('drivername') == 'pgsql':
+			#from psycopg2.extras import DictCursor
+			self.__dbpool = ConnectionPool('psycopg2', database=self.settings.get('database'),
 				user = self.settings.get('username'),
 				password = self.settings.get('password', None),
-				host = self.settings.get('hostname', None), # default to unix socket
+				host = self.settings.get('host', None), # default to unix socket
 				port = self.settings.get('port', '5432'),
-			#	cursor_factory = None,
+			#	cursor_factory = DictCursor,
 			)
-			#self.paramstyle = '?'
-			#self.paramstyle = '%s'
+			self.paramstyle = '%s'
 
-		#	import psycopg2
-		#	self.__dbpool = ConnectionPool('psycopg2', database=self.settings.get('database'),
-		#		user = self.settings.get('username'),
-		#		password = self.settings.get('password', None),
-		#		host = self.settings.get('hostname', None), # should default to unix socket
-		#		port = self.settings.get('port', '5432'),
-		#	#	cursor_factory = psycopg2.extras.DictCursor,
-		#	)
 		elif self.settings.get('drivername') == 'mysql':
-			import MySQLdb
+			#import MySQLdb
 			from MySQLdb import cursors
 			self.__dbpool = ConnectionPool('MySQLdb', db=self.settings.get('database'),
 				user = self.settings.get('username'),
 				passwd = self.settings.get('password', None),
-				host = self.settings.get('hostname', 'localhost'), # should default to unix socket
+				host = self.settings.get('host', 'localhost'), # should default to unix socket
 				port = self.settings.get('port', 3306),
 				cursorclass = cursors.DictCursor,
 				charset = 'utf8',
@@ -150,7 +142,7 @@ class SQLPipeline(object):
 		#
 		SQL_QUERIES = [
 			('select', "SELECT $fields FROM $table:esc"),
-			('insert', "INSERT INTO $table:esc ($fields) VALUES ($values)"), #! mysql
+			('insert', "INSERT INTO $table:esc ($fields) VALUES ($values)"),
 		#	('insert', "INSERT INTO $table:esc SET $fields_values"), #! sqlite
 		#	('upsert', "INSERT OR REPLACE INTO $table:esc ($fields) VALUES ($values)"), #! sqlite
 			('upsert', "REPLACE INTO $table ($fields) VALUES ($values)"), #! mysql
@@ -201,8 +193,13 @@ class SQLPipeline(object):
 		return deferred
 
 	def operation(self, op, item, spider):
+		def onerror(error, query, params):
+			for p in params:
+				query = re.sub('(\\'+self.paramstyle+r'\d?)', '"%s"' % p, query, count=1)
+			log.msg('%s failed executing: %s' % (self.__class__.__name__, query), level=log.ERROR, spider=spider)
+			raise error
 		def onsuccess(result, query, params):
-			for p in params: # possibly inaccurate if param order switches.
+			for p in params:
 				query = re.sub('(\\'+self.paramstyle+r'\d?)', '"%s"' % p, query, count=1)
 			log.msg('%s executed: %s' % (self.__class__.__name__, query), level=log.DEBUG, spider=spider)
 
@@ -210,7 +207,8 @@ class SQLPipeline(object):
 
 		deferred = self.__dbpool.runOperation(query, params)
 		deferred.addCallback(onsuccess, query, params)
-		deferred.addErrback(self._database_error, item, spider)
+		deferred.addErrback(onerror, query, params)
+		#deferred.addErrback(self._database_error, item, spider)
 		return deferred
 
 	def sql_for(self, item, querytype=None):
@@ -249,8 +247,11 @@ class SQLPipeline(object):
 			i.append(key)
 		indices = i
 
-		itemkeys   = ['`%s`' % f for f in indices] # escaping
-		itemfields = ['`%s`' % f for f in item.keys()] # escaping
+		identifier = '"' # ANSI
+		if self.settings.get('drivername') == 'mysql':
+			identifier = '`'
+		itemkeys   = ['{0}{1}{0}'.format(identifier, f) for f in indices] # escaping
+		itemfields = ['{0}{1}{0}'.format(identifier, f) for f in item.keys()] # escaping
 
 		# return this for matching order with prepared statement on execution
 		itemvalues = []
@@ -267,7 +268,7 @@ class SQLPipeline(object):
 				if entity == '$table':
 					field = tablename
 					if args[:3] == 'esc':
-						field = '`%s`' % tablename
+						field = '{0}{1}{0}'.format(identifier, tablename)
 				elif entity == '$fields':
 					attr = ','
 					if args:
@@ -320,5 +321,4 @@ class SQLPipeline(object):
 
 	def query(self, sql):
 		deferred = self.__dbpool.runQuery(sql)
-		deferred.addErrback(log.err)
 		return deferred
