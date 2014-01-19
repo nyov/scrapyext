@@ -1,11 +1,10 @@
-from scrapy.utils.url import canonicalize_url
-from scrapy.dupefilter import RFPDupeFilter
-
 import os
 import hashlib
 import weakref
 import re
 
+from scrapy.utils.url import canonicalize_url
+from scrapy.dupefilter import RFPDupeFilter
 
 _fingerprint_cache = weakref.WeakKeyDictionary()
 def request_fingerprint(request, include_headers=None):
