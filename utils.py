@@ -7,9 +7,15 @@ def cc_stripped(x, extended=False):
 		return "".join([i for i in x if ord(i) in range(32, 126)])
 	return "".join([i for i in x if ord(i) in range(32, 127)])
 
+
 def zip_list(list, chunks):
 	""" zip a flat list into a list of chunk-member tuples """
 	return zip(*[iter(list)]*int(chunks))
+
+
+def flattened(l):
+	""" recursively flatten a list """
+	return reduce(lambda x,y: x+[y] if type(y) != list else x+flattened(y), l,[])
 
 
 from scrapy.exceptions import CloseSpider
