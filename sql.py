@@ -114,7 +114,8 @@ def _sql_format(query, item, paramstyle=':', identifier='"'):
 	for m in _ENTITIES_RE.finditer(query):
 		entity, args = m.groups()
 		args = (args or ':')[1:]
-		field = value = None
+		field = None
+		value = None
 		if entity == '$table':
 			field = tablename
 			if args[:3] == 'esc':
@@ -148,7 +149,7 @@ def _sql_format(query, item, paramstyle=':', identifier='"'):
 			# FIXME: handle this better?
 			value = [v for k, v in item.iteritems() if k in indices]
 		elif entity:
-			raise ValueError('Invalid entity in SQL_QUERIES: "%s"' % entity)
+			raise ValueError('Invalid entity for magic field: "%s"' % entity)
 
 		if field is not None:
 			prepared = prepared.replace(m.group(), field, 1)
@@ -179,6 +180,10 @@ class SQLPipeline(object):
 		self.settings = settings
 		self.paramstyle = ':'
 		self.identifier = '"' # ANSI
+		self.queries = {
+			'select': "SELECT $fields FROM $table:esc WHERE $indices:and", # select on UniqueFields
+			'selectall': "SELECT $fields FROM $table:esc",
+		}
 
 		if self.settings.get('drivername') == 'sqlite':
 			self.__dbpool = ConnectionPool('sqlite3', self.settings.get('database', ':memory:'),
@@ -196,6 +201,12 @@ class SQLPipeline(object):
 			#self.paramstyle = '?'
 			#self.paramstyle = ':'
 			#self.paramstyle = '$'
+			# default magics for sqlite
+			self.queries.update({
+				'insert': "INSERT INTO $table:esc SET $fields_values",
+				'upsert': "INSERT OR REPLACE INTO $table:esc ($fields) VALUES ($values)",
+				'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
+			})
 		elif self.settings.get('drivername') == 'pgsql':
 			#from psycopg2.extras import DictCursor
 			self.__dbpool = ConnectionPool('psycopg2', database=self.settings.get('database'),
@@ -206,6 +217,11 @@ class SQLPipeline(object):
 			#	cursor_factory = DictCursor,
 			)
 			self.paramstyle = '%s'
+			# default magics for postgres
+			self.queries.update({
+				'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
+				'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
+			})
 
 		elif self.settings.get('drivername') == 'mysql':
 			#import MySQLdb
@@ -223,8 +239,15 @@ class SQLPipeline(object):
 			)
 			self.paramstyle = '%s'
 			self.identifier = '`' # MySQL
+			# default magics for mysql
+			self.queries.update({
+				'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
+				'upsert': "REPLACE INTO $table ($fields) VALUES ($values)",
+			#	'upsert': "INSERT INTO $table:esc SET $fields_values ON DUPLICATE KEY UPDATE $fields_values",
+				'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
+			})
 
-		self.queries = kwargs.get('queries')
+		self.queries.update(kwargs.get('queries', {}))
 
 	@classmethod
 	def from_crawler(cls, crawler):
@@ -232,21 +255,12 @@ class SQLPipeline(object):
 			raise NotConfigured('No database connection settings found.')
 
 		SQL_QUERIES = {
-			'select': "SELECT $fields FROM $table:esc",
-			'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
-		#	'insert': "INSERT INTO $table:esc SET $fields_values", #! sqlite
-		#	'upsert': "INSERT OR REPLACE INTO $table:esc ($fields) VALUES ($values)", #! sqlite
-			'upsert': "REPLACE INTO $table ($fields) VALUES ($values)", #! mysql
-		#	'upsert': "INSERT INTO $table:esc SET $fields_values ON DUPLICATE KEY UPDATE $fields_values",
-			'deleteme': "DELETE FROM $table:esc WHERE $fields_values:and", # exact item match required
+			'deleteme': "DELETE FROM $table:esc WHERE $fields_values:and", # exact item match
 			# have indices?
-			'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
-			'fetchall': "SELECT $fields FROM $table:esc WHERE $indices:and", # select on unique keys
 			'fetchone': "SELECT $fields FROM $table:esc WHERE $indices:and LIMIT 1", # if backend supports LIMIT
-			'delete': "DELETE FROM $table:esc WHERE $indices:and", # match on unique fields
-			# ... (add your own)
+			'delete'  : "DELETE FROM $table:esc WHERE $indices:and", # match on UniqueFields
 		}
-		# crawler.settings.get('SQL_QUERIES')
+		SQL_QUERIES.update(crawler.settings.get('SQL_QUERIES', {}))
 
 		o = cls(settings=crawler.settings.get('DATABASE'), stats=crawler.stats, queries=SQL_QUERIES)
 		return o
