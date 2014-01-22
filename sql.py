@@ -97,7 +97,7 @@ def _sql_format(query, item, paramstyle=':', identifier='"'):
 	# if this seems to be a destructive operation, check for missing indices
 	if query[:6].lower() not in ('select'):
 		for val in (v for v in indices if v not in item.keys()):
-			raise ValueError('Item missing value for UniqueField "%s" but index must be present.' % val)
+			raise ValueError('Item missing value for UniqueField "%s" but index must be present. Item is:\n%r' % (val, dict(item)))
 
 	# order indices
 	i = []
@@ -284,66 +284,64 @@ class SQLPipeline(object):
 		"""Process the item."""
 
 		def onerror(error, query, params):
-			for p in params:
-				query = re.sub('(\\'+self.paramstyle+r'\d?)', '"%s"' % p, query, count=1)
+			query = self._log_preparedsql(query, params)
 			log.msg('%s failed executing: %s' % (self.__class__.__name__, query), level=log.ERROR, spider=spider)
 			raise error
 		def onsuccess(result, query, params):
-			for p in params:
-				query = re.sub('(\\'+self.paramstyle+r'\d?)', '"%s"' % p, query, count=1)
+			query = self._log_preparedsql(query, params)
 			log.msg('%s executed: %s' % (self.__class__.__name__, query), level=log.DEBUG, spider=spider)
 
 		# Only process items inheriting SQLItem
 		if not isinstance(item, SQLItem):
 			return item
 
-	#	query, params = _sql_format(self.queries['upsert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
 		query, params = _sql_format(self.queries['insert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
-		update, uvalues = _sql_format(self.queries['update'], item, paramstyle=self.paramstyle, identifier=self.identifier)
+		update, uparams = _sql_format(self.queries['update'], item, paramstyle=self.paramstyle, identifier=self.identifier)
 
-	#	deferred = self.operation((query, params), item, spider)
+	#	deferred = self.operation(query, params, item, spider)
 	#	deferred.addCallback(onsuccess, query, params)
 	#	deferred.addErrback(onerror, query, params)
 	#	deferred.addErrback(self._database_error, item, spider)
 
-		deferred = self.insert_update((query, params), (update, uvalues), item, spider)
-		deferred.addCallback(onsuccess, query, params)
-		#deferred.addErrback(onerror, query, params)
-		deferred.addErrback(onerror, update, uvalues)
-		deferred.addErrback(self._database_error, item, spider)
-
-		# always return item
-		deferred.addBoth(lambda _: item)
-
-		return deferred
-
-		'''
+		# fix this somehow
+		# [1] maybe Deadlocks but no InterfaceErrors
 		deferred = self.__dbpool.runInteraction(self.transaction, item, spider)
-	#	deferred.addCallback(onsuccess, query, params)
-	#	deferred.addErrback(onerror, query, params)
 		deferred.addErrback(self._database_error, item, spider)
+
+		# [2] maybe InterfaceErrors
+	##	deferred = self.insert_or_update((query,params), (update, uparams), item, spider)
+	##	deferred.addErrback(self._database_error, item, spider)
 
 		# always return item
 		deferred.addBoth(lambda _: item)
 
 		return deferred
-		'''
 
 	def operation(self, query, params, item, spider):
 		deferred = self.__dbpool.runOperation(query, params)
 		return deferred
 
-	def insert_update(self, insert, update, item, spider):
+	def insert_or_update(self, insert, update, item, spider):
+		def onsuccess(result, query, params):
+			query = self._log_preparedsql(query, params)
+			log.msg('%s executed: %s' % (self.__class__.__name__, query), level=log.DEBUG, spider=spider)
+		def onerror(error, query, params):
+			query = self._log_preparedsql(query, params)
+			log.msg('%s failed executing: %s' % (self.__class__.__name__, query), level=log.ERROR, spider=spider)
+			raise error
+
 		import MySQLdb
 		def upsert(result, query, params):
 			result.trap(MySQLdb.IntegrityError)
-			spider.log('%s executing: %s' % (self.__class__.__name__, query), level=log.ERROR)
 			deferred = self.__dbpool.runOperation(query, params)
+			deferred.addCallback(onsuccess, query, params)
+			deferred.addErrback(onerror, query, params)
 			return deferred
 
 		query, params = insert
 		uquery, uparams = update
 		deferred = self.__dbpool.runOperation(query, params)
+		deferred.addCallback(onsuccess, query, params)
 		deferred.addErrback(upsert, uquery, uparams)
 		return deferred
 
@@ -354,21 +352,38 @@ class SQLPipeline(object):
 
 		# run INSERT, UPDATE on failure
 		# (mysql wont error trying to update nonexistant column :()
+		query, params = _sql_format(self.queries['insert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
+		qlog = self._log_preparedsql(query, params)
 		try:
-			query, params = _sql_format(self.queries['insert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
-			spider.log("SQL: %s | %s" % (query, params), level=log.DEBUG)
+			#spider.log('%s executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
 			txn.execute(query, params)
 		#except sqlite3.IntegrityError:
 		except MySQLdb.IntegrityError:
+			#spider.log('%s FAILED executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
 			query, params = _sql_format(self.queries['update'], item, paramstyle=self.paramstyle, identifier=self.identifier)
-			spider.log("SQL: %s | %s" % (query, params), level=log.DEBUG)
-			txn.execute(query, params)
+			qlog = self._log_preparedsql(query, params)
+			try:
+				#spider.log('%s executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
+				txn.execute(query, params)
+			except MySQLdb.OperationalError as e:
+				spider.log('%s FAILED executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING)
+				raise e
+			finally:
+				spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
+		finally:
+			spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
 
 		# primary key check
 	#	tx.execute(query, (item['url']))
 	#	result = tx.fetchone()
 	#	if result:
 	#		log.msg("Item already in db: (id) %s item:\n%r" % (result['id'], item), level=log.DEBUG)
+
+	def _log_preparedsql(self, query, params):
+		""" simulate escaped query for log """
+		for p in params:
+			query = re.sub('(\\'+self.paramstyle+r'\d?)', '"%s"' % p, query, count=1)
+		return query
 
 	def _database_error(self, e, item, spider=None):
 		"""Log exceptions."""
