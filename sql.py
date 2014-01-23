@@ -66,6 +66,36 @@ from collections import OrderedDict
 import re
 
 
+import MySQLdb
+
+class ReconnectingConnectionPool(ConnectionPool):
+	"""Reconnecting adbapi connection pool for MySQL.
+
+	This class improves on the solution posted at
+	http://www.gelens.org/2008/09/12/reinitializing-twisted-connectionpool/
+	by checking exceptions by error code and only disconnecting the current
+	connection instead of all of them.
+
+	Also see:
+	http://twistedmatrix.com/pipermail/twisted-python/2009-July/020007.html
+
+	"""
+	def _runInteraction(self, interaction, *args, **kw):
+		try:
+			return ConnectionPool._runInteraction(self, interaction, *args, **kw)
+		except MySQLdb.OperationalError as e:
+			if e[0] not in (2006, 2013, 1213):
+				raise
+			# 2006 MySQL server has gone away
+			# 2013 Lost connection to MySQL server
+			# 1213 Deadlock found when trying to get lock; try restarting transaction
+			log.msg("%s got error %s, retrying operation" % (self.__class__.__name__, e))
+			conn = self.connections.get(self.threadID())
+			self.disconnect(conn)
+			# try the interaction again
+			return ConnectionPool._runInteraction(self, interaction, *args, **kw)
+
+
 _ENTITIES_RE = re.compile(r'(\$[a-z_]+)(:[\w,]+)?')
 
 def _sql_format(query, item, paramstyle=':', identifier='"'):
@@ -178,14 +208,17 @@ class SQLPipeline(object):
 			raise NotConfigured('No database connection settings found.')
 
 		self.settings = settings
+		self.debug = kwargs.get('debug', False)
 		self.paramstyle = ':'
 		self.identifier = '"' # ANSI
 		self.queries = {
 			'select': "SELECT $fields FROM $table:esc WHERE $indices:and", # select on UniqueFields
 			'selectall': "SELECT $fields FROM $table:esc",
 		}
+		self.dbapi = None
 
 		if self.settings.get('drivername') == 'sqlite':
+			self.dbapi = __import__('sqlite3', fromlist=[''])
 			self.__dbpool = ConnectionPool('sqlite3', self.settings.get('database', ':memory:'),
 				# apparently the connection pool / thread pool does not do the teardown in the same thread
 				# https://twistedmatrix.com/trac/ticket/3629
@@ -208,6 +241,7 @@ class SQLPipeline(object):
 				'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
 			})
 		elif self.settings.get('drivername') == 'pgsql':
+			self.dbapi = __import__('psycopg2', fromlist=[''])
 			#from psycopg2.extras import DictCursor
 			self.__dbpool = ConnectionPool('psycopg2', database=self.settings.get('database'),
 				user = self.settings.get('username'),
@@ -224,7 +258,7 @@ class SQLPipeline(object):
 			})
 
 		elif self.settings.get('drivername') == 'mysql':
-			#import MySQLdb
+			self.dbapi = __import__('MySQLdb', fromlist=[''])
 			from MySQLdb import cursors
 			self.__dbpool = ConnectionPool('MySQLdb', db=self.settings.get('database'),
 				user = self.settings.get('username'),
@@ -262,7 +296,12 @@ class SQLPipeline(object):
 		}
 		SQL_QUERIES.update(crawler.settings.get('SQL_QUERIES', {}))
 
-		o = cls(settings=crawler.settings.get('DATABASE'), stats=crawler.stats, queries=SQL_QUERIES)
+		o = cls(
+			settings=crawler.settings.get('DATABASE'),
+			stats=crawler.stats,
+			queries=SQL_QUERIES,
+			debug=crawler.settings.getbool('SQLPIPELINE_DEBUG')
+		)
 		return o
 
 	def open_spider(self, spider):
@@ -330,9 +369,8 @@ class SQLPipeline(object):
 			log.msg('%s failed executing: %s' % (self.__class__.__name__, query), level=log.ERROR, spider=spider)
 			raise error
 
-		import MySQLdb
 		def upsert(result, query, params):
-			result.trap(MySQLdb.IntegrityError)
+		#	result.trap(self.dbapi.IntegrityError)
 			deferred = self.__dbpool.runOperation(query, params)
 			deferred.addCallback(onsuccess, query, params)
 			deferred.addErrback(onerror, query, params)
@@ -341,14 +379,13 @@ class SQLPipeline(object):
 		query, params = insert
 		uquery, uparams = update
 		deferred = self.__dbpool.runOperation(query, params)
-		deferred.addCallback(onsuccess, query, params)
-		deferred.addErrback(upsert, uquery, uparams)
+		if self.debug:
+			deferred.addCallback(onsuccess, query, params)
+			deferred.addErrback(upsert, uquery, uparams)
 		return deferred
 
 	def transaction(self, txn, item, spider):
 		# This will run in a thread, we can use blocking calls
-
-		import MySQLdb
 
 		# run INSERT, UPDATE on failure
 		# (mysql wont error trying to update nonexistant column :()
@@ -357,27 +394,29 @@ class SQLPipeline(object):
 		try:
 			#spider.log('%s executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
 			txn.execute(query, params)
-		#except sqlite3.IntegrityError:
-		except MySQLdb.IntegrityError:
+		except self.dbapi.IntegrityError as e:
 			#spider.log('%s FAILED executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
 			query, params = _sql_format(self.queries['update'], item, paramstyle=self.paramstyle, identifier=self.identifier)
 			qlog = self._log_preparedsql(query, params)
 			try:
 				#spider.log('%s executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
 				txn.execute(query, params)
-			except MySQLdb.OperationalError as e:
+			except self.dbapi.OperationalError as e:
+				# retrying in new transaction
+			#	spider.log('%s errored. Retrying.\nError: %s\nQuery: %s' % (self.__class__.__name__, e, qlog), level=log.WARNING)
+			#	self._spool.append((query, params, item))
+			#except Exception as e:
 				spider.log('%s FAILED executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING)
 				raise e
 			finally:
-				spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
+				if self.debug:
+					spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
+		#except self.dbapi.OperationalError as e:
+		#	# try again later
+		#	self._spool.append((query, params, item))
 		finally:
-			spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
-
-		# primary key check
-	#	tx.execute(query, (item['url']))
-	#	result = tx.fetchone()
-	#	if result:
-	#		log.msg("Item already in db: (id) %s item:\n%r" % (result['id'], item), level=log.DEBUG)
+			if self.debug:
+				spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
 
 	def _log_preparedsql(self, query, params):
 		""" simulate escaped query for log """
