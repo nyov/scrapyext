@@ -94,6 +94,15 @@ class ReconnectingConnectionPool(ConnectionPool):
 			self.disconnect(conn)
 			# try the interaction again
 			return ConnectionPool._runInteraction(self, interaction, *args, **kw)
+		except MySQLdb.InterfaceError as e:
+			if e[0] not in (0,):
+				raise
+			# 0 Interface error (conn gone away or closed)
+			log.msg("%s got error %s, retrying operation" % (self.__class__.__name__, e))
+			conn = self.connections.get(self.threadID())
+			self.disconnect(conn)
+			# try the interaction again
+			return ConnectionPool._runInteraction(self, interaction, *args, **kw)
 
 
 _ENTITIES_RE = re.compile(r'(\$[a-z_]+)(:[\w,]+)?')
@@ -260,7 +269,7 @@ class SQLPipeline(object):
 		elif self.settings.get('drivername') == 'mysql':
 			self.dbapi = __import__('MySQLdb', fromlist=[''])
 			from MySQLdb import cursors
-			self.__dbpool = ConnectionPool('MySQLdb', db=self.settings.get('database'),
+			self.__dbpool = ReconnectingConnectionPool('MySQLdb', db=self.settings.get('database'),
 				user = self.settings.get('username'),
 				passwd = self.settings.get('password', None),
 				host = self.settings.get('host', 'localhost'), # should default to unix socket
@@ -270,14 +279,17 @@ class SQLPipeline(object):
 				use_unicode = True,
 				# connpool settings
 				cp_reconnect = True,
+				#cp_noisy = True,
+				#cp_min = 1,
+				#cp_max = 1,
 			)
 			self.paramstyle = '%s'
 			self.identifier = '`' # MySQL
 			# default magics for mysql
 			self.queries.update({
 				'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
-				'upsert': "REPLACE INTO $table ($fields) VALUES ($values)",
-			#	'upsert': "INSERT INTO $table:esc SET $fields_values ON DUPLICATE KEY UPDATE $fields_values",
+			#	'upsert': "REPLACE INTO $table ($fields) VALUES ($values)",
+				'upsert': "INSERT INTO $table:esc SET $fields_values ON DUPLICATE KEY UPDATE $fields_values",
 				'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
 			})
 
@@ -407,7 +419,7 @@ class SQLPipeline(object):
 			#	self._spool.append((query, params, item))
 			#except Exception as e:
 				spider.log('%s FAILED executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING)
-				raise e
+				raise
 			finally:
 				if self.debug:
 					spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
@@ -432,5 +444,4 @@ class SQLPipeline(object):
 			log.err(e)
 
 	def query(self, sql):
-		deferred = self.__dbpool.runQuery(sql)
-		return deferred
+		return self.__dbpool.runQuery(sql)
