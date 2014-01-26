@@ -334,77 +334,87 @@ class SQLPipeline(object):
 	def process_item(self, item, spider):
 		"""Process the item."""
 
-		def onerror(error, query, params):
-			query = self._log_preparedsql(query, params)
-			log.msg('%s failed executing: %s' % (self.__class__.__name__, query), level=log.ERROR, spider=spider)
-			raise error
-		def onsuccess(result, query, params):
-			query = self._log_preparedsql(query, params)
-			log.msg('%s executed: %s' % (self.__class__.__name__, query), level=log.DEBUG, spider=spider)
-
-		# Only process items inheriting SQLItem
+		# Only handle items inheriting SQLItem
 		if not isinstance(item, SQLItem):
 			return item
 
-		query, params = _sql_format(self.queries['insert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
-		update, uparams = _sql_format(self.queries['update'], item, paramstyle=self.paramstyle, identifier=self.identifier)
-
-	#	deferred = self.operation(query, params, item, spider)
-	#	deferred.addCallback(onsuccess, query, params)
-	#	deferred.addErrback(onerror, query, params)
-	#	deferred.addErrback(self._database_error, item, spider)
-
-		# fix this somehow
-		# [1] maybe Deadlocks but no InterfaceErrors
-		deferred = self.__dbpool.runInteraction(self.transaction, item, spider)
-		deferred.addErrback(self._database_error, item, spider)
-
-		# [2] maybe InterfaceErrors
-	##	deferred = self.insert_or_update((query,params), (update, uparams), item, spider)
-	##	deferred.addErrback(self._database_error, item, spider)
-
-		# always return item
+		# always return original item
+		deferred = self.operation(item, spider)
 		deferred.addBoth(lambda _: item)
-
 		return deferred
 
-	def operation(self, query, params, item, spider):
-		deferred = self.__dbpool.runOperation(query, params)
-		return deferred
+	def operation(self, item, spider):
 
-	def insert_or_update(self, insert, update, item, spider):
 		def onsuccess(result, query, params):
-			query = self._log_preparedsql(query, params)
-			log.msg('%s executed: %s' % (self.__class__.__name__, query), level=log.DEBUG, spider=spider)
-		def onerror(error, query, params):
-			query = self._log_preparedsql(query, params)
-			log.msg('%s failed executing: %s' % (self.__class__.__name__, query), level=log.ERROR, spider=spider)
-			raise error
+			if self.debug:
+				qlog = self._log_preparedsql(query, params)
+				log.msg('%s executed: %s' % (self.__class__.__name__, qlog), level=log.INFO, spider=spider)
+			return result
 
-		def upsert(result, query, params):
-		#	result.trap(self.dbapi.IntegrityError)
-			deferred = self.__dbpool.runOperation(query, params)
+		def onerror(error, query, params):
+			error.trap(self.dbapi.IntegrityError) # insert errored
+			e = error.getErrorMessage()
+			if self.debug:
+				qlog = self._log_preparedsql(query, params)
+				log.msg('%s failed executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING, spider=spider)
+			error.raiseException() # keep bubbling
+			return error
+
+		def onseriouserror(error, query, params):
+			error.trap(self.dbapi.ProgrammingError, self.dbapi.InterfaceErrors)
+			e = error.getErrorMessage()
+			if self.debug:
+				qlog = self._log_preparedsql(query, params)
+				log.msg('%s FAILED executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.ERROR, spider=spider)
+			error.raiseException() # keep bubbling
+			return error
+
+		def update(error, query, params):
+			error.trap(self.dbapi.IntegrityError) # insert errored
+			#error.trap(self.dbapi.OperationalError) # db errored - deadlock
+			e = error.getErrorMessage()
+			if self.debug:
+				qlog = self._log_preparedsql(query, params)
+				log.msg('%s executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG, spider=spider)
+			deferred = self.__dbpool.runInteraction(self.transaction, query, params, item, spider)
+			#deferred = self.__dbpool.runOperation(query, params)
 			deferred.addCallback(onsuccess, query, params)
 			deferred.addErrback(onerror, query, params)
 			return deferred
 
-		query, params = insert
-		uquery, uparams = update
-		deferred = self.__dbpool.runOperation(query, params)
-		if self.debug:
-			deferred.addCallback(onsuccess, query, params)
-			deferred.addErrback(upsert, uquery, uparams)
+		# try insert
+		query, params = _sql_format(self.queries['insert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
+		#query, params = _sql_format(self.queries['upsert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
+		deferred = self.__dbpool.runInteraction(self.transaction, query, params, item, spider)
+		#deferred = self.__dbpool.runOperation(query, params)
+		deferred.addCallback(onsuccess, query, params)
+		#deferred.addErrback(onerror, query, params)
+		##deferred.addErrback(onseriouserror, query, params)
+		# on failure, update
+		query, params = _sql_format(self.queries['update'], item, paramstyle=self.paramstyle, identifier=self.identifier)
+		deferred.addErrback(update, query, params)
+		##deferred.addErrback(onseriouserror, query, params)
+	#	deferred.addErrback(self._database_error, item, spider)
+
+	#	deferred = self.insert_or_update((query,params), (update, uparams), item, spider)
+
 		return deferred
 
-	def transaction(self, txn, item, spider):
-		# This will run in a thread, we can use blocking calls
+	def transaction(self, txn, query, params, item, spider):
+		txn.execute(query, params)
 
-		# run INSERT, UPDATE on failure
-		# (mysql wont error trying to update nonexistant column :()
+	def xtransaction(self, txn, query, params, item, spider):
+		# primary key check
+		query, params = _sql_format(self.queries['select'], item, paramstyle=self.paramstyle, identifier=self.identifier)
+		txn.execute(query, params)
+		result = txn.fetchone()
+		if result:
+			log.msg("Item already in db: (id) %s item:\n%r" % (result['id'], item), level=log.WARNING)
+
 		query, params = _sql_format(self.queries['insert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
+		# transaction in thread
 		qlog = self._log_preparedsql(query, params)
 		try:
-			#spider.log('%s executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
 			txn.execute(query, params)
 		except self.dbapi.IntegrityError as e:
 			#spider.log('%s FAILED executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
@@ -418,14 +428,17 @@ class SQLPipeline(object):
 			#	spider.log('%s errored. Retrying.\nError: %s\nQuery: %s' % (self.__class__.__name__, e, qlog), level=log.WARNING)
 			#	self._spool.append((query, params, item))
 			#except Exception as e:
-				spider.log('%s FAILED executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING)
+				if self.debug:
+					spider.log('%s FAILED executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING)
 				raise
 			finally:
 				if self.debug:
 					spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
-		#except self.dbapi.OperationalError as e:
-		#	# try again later
-		#	self._spool.append((query, params, item))
+		except self.dbapi.OperationalError as e:
+			# also try again
+			if self.debug:
+				spider.log('%s failed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
+			raise
 		finally:
 			if self.debug:
 				spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
