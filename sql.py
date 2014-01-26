@@ -217,6 +217,7 @@ class SQLPipeline(object):
 			raise NotConfigured('No database connection settings found.')
 
 		self.settings = settings
+		self.stats = kwargs.get('stats')
 		self.debug = kwargs.get('debug', False)
 		self.paramstyle = ':'
 		self.identifier = '"' # ANSI
@@ -338,6 +339,8 @@ class SQLPipeline(object):
 		if not isinstance(item, SQLItem):
 			return item
 
+		self.stats.inc_value('sqlpipeline/total_items_caught')
+
 		# always return original item
 		deferred = self.operation(item, spider)
 		deferred.addBoth(lambda _: item)
@@ -345,62 +348,84 @@ class SQLPipeline(object):
 
 	def operation(self, item, spider):
 
-		def onsuccess(result, query, params):
+		def on_insert(result, query, params):
+			self.stats.inc_value('sqlpipeline/sqlop_success_insert')
 			if self.debug:
 				qlog = self._log_preparedsql(query, params)
-				log.msg('%s executed: %s' % (self.__class__.__name__, qlog), level=log.INFO, spider=spider)
+				log.msg('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG, spider=spider)
 			return result
 
-		def onerror(error, query, params):
-			error.trap(self.dbapi.IntegrityError) # insert errored
+		def on_update(result, query, params):
+			self.stats.inc_value('sqlpipeline/sqlop_success_update')
+			if self.debug:
+				qlog = self._log_preparedsql(query, params)
+				log.msg('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG, spider=spider)
+			return result
+
+		def on_integrityerror(error, query, params):
+			error.trap(self.dbapi.IntegrityError)
 			e = error.getErrorMessage()
+			self.stats.inc_value('sqlpipeline/error_integrity')
+			if self.debug:
+				qlog = self._log_preparedsql(query, params)
+				log.msg('%s failed executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.INFO, spider=spider)
+		#	error.raiseException() # keep bubbling
+
+		def on_operationalerror(error, query, params):
+			error.trap(self.dbapi.OperationalError)
+			e = error.getErrorMessage()
+			self.stats.inc_value('sqlpipeline/error_operational')
 			if self.debug:
 				qlog = self._log_preparedsql(query, params)
 				log.msg('%s failed executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING, spider=spider)
-			error.raiseException() # keep bubbling
-			return error
+		#	error.raiseException() # keep bubbling
 
-		def onseriouserror(error, query, params):
-			error.trap(self.dbapi.ProgrammingError, self.dbapi.InterfaceErrors)
+		def on_seriouserror(error, query, params):
+			error.trap(self.dbapi.ProgrammingError, self.dbapi.InterfaceError)
 			e = error.getErrorMessage()
+			self.stats.inc_value('sqlpipeline/error_connection')
 			if self.debug:
 				qlog = self._log_preparedsql(query, params)
-				log.msg('%s FAILED executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.ERROR, spider=spider)
+				log.msg('%s FAILED executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING, spider=spider)
 			error.raiseException() # keep bubbling
 			return error
 
 		def update(error, query, params):
-			error.trap(self.dbapi.IntegrityError) # insert errored
-			#error.trap(self.dbapi.OperationalError) # db errored - deadlock
-			e = error.getErrorMessage()
-			if self.debug:
-				qlog = self._log_preparedsql(query, params)
-				log.msg('%s executing: %s' % (self.__class__.__name__, qlog), level=log.DEBUG, spider=spider)
-			deferred = self.__dbpool.runInteraction(self.transaction, query, params, item, spider)
-			#deferred = self.__dbpool.runOperation(query, params)
-			deferred.addCallback(onsuccess, query, params)
-			deferred.addErrback(onerror, query, params)
-			return deferred
+			error.trap(self.dbapi.IntegrityError)
+			if error.value[0] != 1062: # Duplicate key
+				error.raiseException() # keep bubbling
+			#e = error.getErrorMessage()
+			#if self.debug:
+			#	qlog = self._log_preparedsql(query, params)
+			#	log.msg('%s got error %s - trying update' % (self.__class__.__name__, e), level=log.DEBUG, spider=spider)
+			self.stats.inc_value('sqlpipeline/sqlop_update_after_insert_tries')
+			d = self.__dbpool.runInteraction(self.transaction, query, params, item, spider)
+			d.addCallback(on_update, query, params)
+			return d
 
 		# try insert
 		query, params = _sql_format(self.queries['insert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
 		#query, params = _sql_format(self.queries['upsert'], item, paramstyle=self.paramstyle, identifier=self.identifier)
 		deferred = self.__dbpool.runInteraction(self.transaction, query, params, item, spider)
-		#deferred = self.__dbpool.runOperation(query, params)
-		deferred.addCallback(onsuccess, query, params)
-		#deferred.addErrback(onerror, query, params)
-		##deferred.addErrback(onseriouserror, query, params)
+		deferred.addCallback(on_insert, query, params)
+		deferred.addErrback(on_seriouserror, query, params)
+		deferred.addErrback(on_operationalerror, query, params)
+		#deferred.addErrback(on_integrityerror, query, params) # ignore failing inserts before update
 		# on failure, update
 		query, params = _sql_format(self.queries['update'], item, paramstyle=self.paramstyle, identifier=self.identifier)
 		deferred.addErrback(update, query, params)
-		##deferred.addErrback(onseriouserror, query, params)
-	#	deferred.addErrback(self._database_error, item, spider)
+		deferred.addErrback(on_seriouserror, query, params)
+		deferred.addErrback(on_operationalerror, query, params)
+		deferred.addErrback(on_integrityerror, query, params)
+		deferred.addErrback(self._database_error, item, spider)
 
 	#	deferred = self.insert_or_update((query,params), (update, uparams), item, spider)
 
+		self.stats.inc_value('sqlpipeline/total_items_returned')
 		return deferred
 
 	def transaction(self, txn, query, params, item, spider):
+		self.stats.inc_value('sqlpipeline/sqlop_transact_%s' % query[:6].lower())
 		txn.execute(query, params)
 
 	def xtransaction(self, txn, query, params, item, spider):
