@@ -1,4 +1,7 @@
-from scrapy.contrib.loader import XPathItemLoader as ScrapyItemLoader
+try:
+	from scrapy.contrib.loader import XPathItemLoader as ScrapyItemLoader # pre-0.22
+except ImportError:
+	from scrapy.contrib.loader import ItemLoader as ScrapyItemLoader
 
 
 class ItemLoader(ScrapyItemLoader):
