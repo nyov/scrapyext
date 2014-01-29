@@ -20,3 +20,10 @@ class ItemLoader(ScrapyItemLoader):
 			self.selector = selector
 			self.context.update(selector=selector)
 
+	# keep old behaviour of returning None values from Loader
+	# if https://github.com/scrapy/scrapy/pull/556 stays around
+	def load_item(self):
+		item = self.item
+		for field_name in self._values:
+			item[field_name] = self.get_output_value(field_name)
+		return item
