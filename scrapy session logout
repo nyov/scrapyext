@@ -1,0 +1,23 @@
+def __init__(self, *args, **kwargs):
+	super(Spider, self).__init__(*args, **kwargs)
+	dispatcher.connect(self.spider_idle, signal=signals.spider_idle)
+
+logout_done = False
+def spider_idle(self, spider):
+	if spider != self: return
+	if self.logout_done: return
+	self.crawler.engine.schedule(self.logout(), spider)
+	raise DontCloseSpider('Session logout proceeding')
+
+def logout(self, response=None):
+	if response and response.meta['logout_sent']:
+		# verify logout?
+		if 'Logged out' in response.body:
+			self.log('Logout successful.', level=log.INFO)
+		return
+	
+	self.log('Closing down with logout...', level=log.INFO)
+	self.logout_done = True # dont care if this request succeeds
+	request = Request(url=self.logout_url, callback=self.logout)
+	request.meta['logout_sent'] = True
+	return request
