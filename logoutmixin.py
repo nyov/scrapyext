@@ -11,33 +11,40 @@ Usage:
 	Set a class parameter "logout_url" to the URL
 	to call at spider closing time.
 
+	Override "logout" and/or "logout_verify" to
+	customize behaviour.
+
 """
 
 from scrapy import signals
 from scrapy.xlib.pydispatch import dispatcher
 from scrapy.exceptions import DontCloseSpider
+from scrapy.http import Request
 
 
 class LogoutMixin(object):
 
-	logout_url = None
-
-	def start_requests(self):
+	def __init__(self, *a, **kw):
+		super(LogoutMixin, self).__init__(*a, **kw)
+		# start_requests() is the better place for this, but that makes
+		# it necessary to call the parent class in a spider override,
+		# which is easy to forget.
 		dispatcher.connect(self._spider_logout, signal=signals.spider_idle)
-		return super(LogoutMixin, self).start_requests()
 
 	_logout_done = False
 	def _spider_logout(self, spider):
 		if spider != self: return
 		if self._logout_done: return
-		if self.logout_url:
-			self.crawler.engine.schedule(self.logout(), spider)
-			self._logout_done = True # dont care if this request succeeds
-			raise DontCloseSpider('logout scheduled')
+		request = self.logout()
+		if not isinstance(request, Request): return
+		self.crawler.engine.schedule(request, spider)
+		self._logout_done = True # dont care if this request succeeds
+		raise DontCloseSpider('logout scheduled')
 
 	def logout(self):
 		"""Request to schedule for logout"""
-		return Request(self.logout_url, callback=self.logout_verify)
+		if self.logout_url:
+			return Request(self.logout_url, callback=self.logout_verify, dont_filter=True)
 
 	def logout_verify(self, response):
 		"""Verify a successful logout"""
