@@ -1,17 +1,47 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 """
-Example script to control a Scrapy server using its JSON-RPC web service.
-
-It only provides a reduced functionality as its main purpose is to illustrate
-how to write a web service client. Feel free to improve or write you own.
+Script to control a Scrapy spider using its JSON-RPC web service.
 
 """
 
 from __future__ import print_function
-import sys, optparse, urllib, json
+import sys, optparse, json
 from urlparse import urljoin
+import requests
+try:
+	from simplejson.decoder import JSONDecodeError
+except:
+	JSONDecodeError = TypeError
 
-from scrapy.utils.jsonrpc import jsonrpc_client_call, JsonRpcError
+class JsonRpcError(Exception):
+
+	def __init__(self, code, message, data=None):
+		super(JsonRpcError, self).__init__()
+		self.code = code
+		self.message = message
+		self.data = data
+
+	def __str__(self):
+		return "JSON-RPC error (code %d): %s" % (self.code, self.message)
+
+def jsonrpc_client_call(url, method, *args, **kwargs):
+	"""Execute a JSON-RPC call on the given url"""
+	_requests = kwargs.pop('_requests', requests)
+	if args and kwargs:
+		raise ValueError("Pass *args or **kwargs but not both to jsonrpc_client_call")
+	req = json.dumps({'jsonrpc': '2.0', 'method': method, 'params': args or kwargs, 'id': 1})
+	res = _requests.post(url, data=req)
+	res = json.loads(_requests.post(url, data=req).text)
+	if 'result' in res:
+		return res['result']
+	elif 'error' in res:
+		er = res['error']
+		raise JsonRpcError(er['code'], er['message'], er['data'])
+	else:
+		msg = "JSON-RPC response must contain 'result' or 'error': %s" % res
+		raise ValueError(msg)
+
+# -- commands
 
 def get_commands():
 	return {
@@ -70,16 +100,24 @@ def jsonrpc_call(opts, path, method, *args, **kwargs):
 
 def json_get(opts, path):
 	url = get_wsurl(opts, path)
-	return json.loads(urllib.urlopen(url).read())
+	res = requests.get(url)
+	try:
+		return res.json()
+		#return json.loads(res)
+	except (JSONDecodeError, TypeError):
+		print( res.text )
+		return ""
+
+# -- program options
 
 def parse_opts():
 	usage = "%prog [options] <command> [arg] ..."
 	description = "Scrapy web service control script. Use '%prog help' " \
 		"to see the list of available commands."
 	op = optparse.OptionParser(usage=usage, description=description)
-	op.add_option("-H", dest="host", default="localhost", \
+	op.add_option("-s", dest="host", default="localhost", \
 		help="Scrapy host to connect to")
-	op.add_option("-P", dest="port", type="int", default=6080, \
+	op.add_option("-p", dest="port", type="int", default=6080, \
 		help="Scrapy port to connect to")
 	opts, args = op.parse_args()
 	if not args:
