@@ -13,6 +13,13 @@ def zip_list(list, chunks):
 	return zip(*[iter(list)]*int(chunks))
 
 
+# list(chunks([1, 2, 3, 4, 5, 6, 7, 8, 9], 3))
+def chunks(l, n):
+	""" Yield successive n-sized chunks from l."""
+	for i in xrange(0, len(l), n):
+		yield l[i:i+n]
+
+
 def flattened(l):
 	""" recursively flatten a list """
 	return reduce(lambda x,y: x+[y] if type(y) != list else x+flattened(y), l,[])
