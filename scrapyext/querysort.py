@@ -1,6 +1,12 @@
 """
 GET parameter sort Spider Middleware
 
+Define (known) query parameters and their order,
+unknown params will be added at the end of the querystring.
+
+QUERYSORT_ORDER = {
+	'shop': 1, 'SessionId': 2, 'c': 3, 'Prod': 4, 'p': 5
+}
 """
 
 import urlparse
@@ -10,10 +16,28 @@ from scrapy import log
 from scrapy.http import Request
 from scrapy.exceptions import NotConfigured
 
+def querysort(request, sortmap={}):
+	if not isinstance(request, Request):
+		return
+
+	scheme, netloc, path, params, query, fragment = urlparse.urlparse(request.url)
+	q = urlparse.parse_qsl(query, True) # keep empty params
+
+	# sort known fields by ascending order, add unknown fields to end
+	q = sorted(q, key=lambda x:sortmap.get(x[0]) or 999)
+	query = urllib.urlencode(q)
+
+	url = urlparse.ParseResult(scheme, netloc, path, params, query, fragment).geturl()
+	request = request.replace(url=url)
+
+	return request
+
+
 class QuerySortMiddleware(object):
 
 	def __init__(self, settings):
-		if not settings.getbool('QUERYSORT_ENABLED'):
+		self.order = settings.getdict('QUERYSORT_ORDER'):
+		if not self.order:
 			raise NotConfigured
 
 	@classmethod
@@ -21,25 +45,7 @@ class QuerySortMiddleware(object):
 		return cls(crawler.settings)
 
 	def process_spider_output(self, response, result, spider):
-		for x in result:
-			if isinstance(x, Request):
-				# resort the parameters for broken sites which do redirects
-				# or simliar to "fix" query field order (endless redirects)
-
-				# order of known fields
-				order = {'shop': 1, 'SessionId': 2, 'c': 3, 'Prod': 4, 'p': 5}
-
-				scheme, netloc, path, params, query, fragment = urlparse.urlparse(x.url)
-				q = urlparse.parse_qsl(query, True) # keep empty params
-
-				# sort known fields by ascending order, add unknown fields to end
-				q = sorted(q, key=lambda x:order.get(x[0]) or 99)
-				query = urllib.urlencode(q)
-
-				url = urlparse.ParseResult(scheme, netloc, path, params, query, fragment).geturl()
-				x = x.replace(url=url)
-
-			#	msg = "Request parameters resorted"
-			#	log.msg(msg, spider=spider, level=log.DEBUG)
-
-			yield x
+		for request in result:
+			if isinstance(request, Request):
+				request = querysort(request, self.order)
+			yield request
