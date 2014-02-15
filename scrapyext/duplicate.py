@@ -1,45 +1,57 @@
-from scrapy import log
-from scrapy import signals
-from scrapy.exceptions import DropItem
+"""
+DuplicatesPipeline
 
-from project.items import Product
-from project.items import Manufacturer
+Uses a configurable unique key/item field to filter duplicates on.
+
+
+HashedDuplicatesPipeline
+
+Automatic (exact) duplicates finder, remembering items based on a hash,
+optionally using a hashset for every seen itemtype.
+"""
+
+from scrapy.exceptions import DropItem
+try:
+	import cPickle as pickle
+except ImportError:
+	import pickle
+
 
 class DuplicatesPipeline(object):
 
-	def __init__(self):
+	def __init__(self, settings):
 		self.ids_seen = set()
+		self.key = settings.get('DUPLICATE_KEY') or raise NotConfigured()
 
 	def process_item(self, item, spider):
-		if item['id'] in self.ids_seen:
+		if item[self.key] in self.ids_seen:
 			raise DropItem("Duplicate item found: %s" % item)
 		else:
-			self.ids_seen.add(item['id'])
+			self.ids_seen.add(item[self.key])
 			return item
 
-try:
-	import cPickle as pickle
-except:
-	import pickle
 
-class DuplicateHashPipeline(object):
+class HashedDuplicatesPipeline(object):
 
-	def __init__(self):
-		self.products = set()
-		self.manufacturers = set()
+	def __init__(self, settings):
+		self.hashsets = settings.getbool('HASHDUPE_SETS') or False
+		if self.hashsets:
+			self.ids_seen = {}
+		else:
+			self.ids_seen = set()
 
 	def process_item(self, item, spider):
-		if isinstance(item, Product):
-			ihash = hash( pickle.dumps(item) )
-			if ihash in self.products:
-				raise DropItem("Duplicate product found: %s" % item['id'])
-			else:
-				self.products.add(ihash)
+		type = item.__class__.__name__.lower()
+		if self.hashsets:
+			hs = self.ids_seen[type] = self.ids_seen.get(type, set())
+		else:
+			hs = self.ids_seen
 
-		if isinstance(item, Manufacturer):
-			ihash = hash( pickle.dumps(item) )
-			if ihash in self.manufacturers:
-				raise DropItem("Duplicate manufacturer found: %s" % item['id'])
-			else:
-				self.manufacturers.add(ihash)
-		return item
+		# hashes may differ between interpreter startups;
+		# for re-useable hashes, use hashlib algos instead.
+		ihash = hash( pickle.dumps(item) )
+		if ihash in hs:
+			raise DropItem("Duplicate %s found:\n%r" % (item.__class__.__name__, item))
+		else:
+			self.hs.add(ihash)
+			return item
