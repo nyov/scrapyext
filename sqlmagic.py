@@ -1,13 +1,39 @@
 """
-SQLPipeline
+SQLMagicPipeline
 
-The SQLPipeline uses twisted adbapi connection pools
+SQLMagicPipeline uses twisted adbapi connection pools
 to put items into an RDBMS.
+It uses "magic variables" in "prepared SQL statements"
+(as supported by the underlying dbapi driver) to evaluate
+simple SQL statements, without adding the complexities
+and pitfalls of an ORM.
 
-Define items for SQLPipeline in your items.py:
+    ITEM_PIPELINES = [
+        'project.pipelines.sqlmagic.SQLMagicPipeline',
+    ]
+
+Settings:
+
+    SQLMAGIC_DATABASE = { # (dict)
+        'drivername': 'mysql', # (required)
+        'database': 'db', # (required)
+        'username': 'user',
+        'password': 'pass',
+        'host': 'localhost',
+        'port': 3306,
+    }
+    SQLMAGIC_QUERIES = {  # (dict)
+        # (optional. usual defaults per database included in code)
+        'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
+        'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
+    }
+    # log prepared sql queries and operational errors for debugging
+    SQLMAGIC_DEBUG = True # (bool)
+
+Define items for SQLPipeline in your items.py as such:
 
 ```
-from .pipelines.sql import SQLItem, UniqueField
+from .pipelines.sqlmagic import SQLItem, UniqueField
 
 class MyItem(SQLItem):
 	__tablename__ = 'my_items'
@@ -18,16 +44,28 @@ class MyItem(SQLItem):
 	spider = Field()
 ```
 
-Prepared statements using magic variables:
+SQLMagicPipeline will only process SQLItem types, for safety reasons.
+Standard items are ignored by this pipeline (and can be safely mixed).
+
+A `UniqueField` denotes a field which is unique.
+It may be a PRIMARY KEY or UNIQUE key constraint in the database,
+or only emulate one,
+and will be filled in any `$indexes` magic field.
+Multiple `UniqueField`s will convert to a single constraint
+("...WHERE x=? AND y=?...").
+
+
+Magic variables for building SQL queries:
 
  $table
 	item database tablename
-	will be replaced by SQLItem's __tablename__ or item class name
+	will be replaced by SQLItem's __tablename__ attribute
+	(or the item's class name, if missing)
 
 	$table:escaped
-	- tablename will be escaped (default)
+	- tablename will be quoted/escaped
  $fields (table cells)
-	item fields (keys), escaped
+	item fields (keys), quoted/escaped
 	will be replaced by fields found in item
 	- concatenated by comma (,)
 	(equals `$fields:,` )
@@ -39,6 +77,7 @@ Prepared statements using magic variables:
 	will be replaced by items' $fields respective values
 	- concatenated by comma (,)
  $fields_values
+ $fields2values
 	item $fields and their respective $values (as above),
 	joined by '='. ($field1=$value1, $field2=$value2, ...)
 	- concatenated by comma (,)
@@ -49,10 +88,47 @@ Prepared statements using magic variables:
  $indexes
 	item's unique field(s) if defined
 	- concatenated by ','
+	(equals `$indices:,` )
 
 	$indexes:and (THIS IS USUALLY WHAT YOU WANT in the "WHERE" clause)
 	- concatenated by ' AND '
 	  (This means all UniqueFields are counted as a single constraint)
+
+
+Example illustration:
+
+Suppose an SQLItem `Book' with the fields 'isbn', 'title' and 'description':
+The isbn would be the unique field, used to detect duplicates or do updates.
+
+class Book(SQLItem):
+	__tablename__ = 'book'
+	isbn = UniqueField()
+	title = Field()
+	description = Field()
+
+Your query template for this Item, using a MySQL database, could look like this:
+
+"INSERT INTO $table SET $fields_values ON DUPLICATE KEY UPDATE $fields_values"
+
+which SQLPipeline would evaluate into:
+
+"INSERT INTO `book` SET `isbn`=?,`title`=?,`description`=?
+	ON DUPLICATE KEY UPDATE `isbn`=?,`title`=?,`description`=?"
+
+using any given values from the current scraped item (and MySQL quoting).
+(This requires unique/primary keys in the database table.)
+
+Field values should match their database equivalent in python
+to avoid surprises (int as int, string as string, etc.),
+or may be converted by the dbapi driver.
+
+Another example:
+
+"UPDATE $table SET $fields_values WHERE $indices:and"
+
+would get expanded to
+
+"UPDATE `book` SET `isbn`=?,`title`=?,`description`=? WHERE `isbn`=?"
 
 """
 from scrapy import log
@@ -144,8 +220,8 @@ def _sql_format(query, item, paramstyle=':', identifier='"'):
 		i.append(key)
 	indices = i
 
-	itemkeys   = ['{0}{1}{0}'.format(identifier, f) for f in indices] # escaping
-	itemfields = ['{0}{1}{0}'.format(identifier, f) for f in item.keys()] # escaping
+	itemkeys   = ['{0}{1}{0}'.format(identifier, f) for f in indices] # quoting
+	itemfields = ['{0}{1}{0}'.format(identifier, f) for f in item.keys()] # quoting
 
 	itemvalues = []
 
@@ -171,7 +247,7 @@ def _sql_format(query, item, paramstyle=':', identifier='"'):
 			field = attr.join([paramformat(i) for i, _ in enumerate(itemfields)])
 			# FIXME: handle this better?
 			value = item.values()
-		elif entity == '$fields_values':
+		elif entity == '$fields_values' or entity == '$fields2values':
 			attr = ','
 			if args:
 				attr = ' %s ' % args.upper()
@@ -180,6 +256,7 @@ def _sql_format(query, item, paramstyle=':', identifier='"'):
 			# FIXME: handle this better?
 			value = item.values()
 		elif entity == '$indices' or entity == '$indexes':
+			# TODO: should add true (1=1), if no indices exist
 			attr = ','
 			if args:
 				attr = ' %s ' % args.upper()
@@ -202,13 +279,14 @@ class UniqueField(Field):
 	"""Field to tell SQLPipeline about an index.
 	"""
 
+
 class SQLItem(Item):
 	"""Item to support database operations in SQLPipeline.
 	"""
 	__tablename__ = ''
 
 
-class SQLPipeline(object):
+class SQLMagicPipeline(object):
 
 	def __init__(self, settings, **kwargs):
 		"""Connect to database in the pool."""
@@ -220,10 +298,14 @@ class SQLPipeline(object):
 		self.stats = kwargs.get('stats')
 		self.debug = kwargs.get('debug', False)
 		self.paramstyle = ':'
-		self.identifier = '"' # ANSI
+		self.identifier = '"' # ANSI quoting
 		self.queries = {
 			'select': "SELECT $fields FROM $table:esc WHERE $indices:and", # select on UniqueFields
 			'selectall': "SELECT $fields FROM $table:esc",
+			'selectone': "SELECT $fields FROM $table:esc WHERE $indices:and LIMIT 1", # if backend supports LIMIT
+			#
+			'delete'  : "DELETE FROM $table:esc WHERE $indices:and", # match on UniqueFields
+			'deleteme': "DELETE FROM $table:esc WHERE $fields_values:and", # exact item match
 		}
 		self.dbapi = None
 
@@ -244,7 +326,7 @@ class SQLPipeline(object):
 			#self.paramstyle = '?'
 			#self.paramstyle = ':'
 			#self.paramstyle = '$'
-			# default magics for sqlite
+			# default statements for sqlite
 			self.queries.update({
 				'insert': "INSERT INTO $table:esc SET $fields_values",
 				'upsert': "INSERT OR REPLACE INTO $table:esc ($fields) VALUES ($values)",
@@ -261,7 +343,7 @@ class SQLPipeline(object):
 			#	cursor_factory = DictCursor,
 			)
 			self.paramstyle = '%s'
-			# default magics for postgres
+			# default statements for postgres
 			self.queries.update({
 				'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
 				'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
@@ -285,8 +367,8 @@ class SQLPipeline(object):
 				#cp_max = 1,
 			)
 			self.paramstyle = '%s'
-			self.identifier = '`' # MySQL
-			# default magics for mysql
+			self.identifier = '`' # MySQL quoting
+			# default statements for mysql
 			self.queries.update({
 				'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
 			#	'upsert': "REPLACE INTO $table ($fields) VALUES ($values)",
@@ -298,22 +380,14 @@ class SQLPipeline(object):
 
 	@classmethod
 	def from_crawler(cls, crawler):
-		if not crawler.settings.get('DATABASE'):
+		if not crawler.settings.get('SQLMAGIC_DATABASE'):
 			raise NotConfigured('No database connection settings found.')
 
-		SQL_QUERIES = {
-			'deleteme': "DELETE FROM $table:esc WHERE $fields_values:and", # exact item match
-			# have indices?
-			'fetchone': "SELECT $fields FROM $table:esc WHERE $indices:and LIMIT 1", # if backend supports LIMIT
-			'delete'  : "DELETE FROM $table:esc WHERE $indices:and", # match on UniqueFields
-		}
-		SQL_QUERIES.update(crawler.settings.get('SQL_QUERIES', {}))
-
 		o = cls(
-			settings=crawler.settings.get('DATABASE'),
+			settings=crawler.settings.get('SQLMAGIC_DATABASE'),
 			stats=crawler.stats,
-			queries=SQL_QUERIES,
-			debug=crawler.settings.getbool('SQLPIPELINE_DEBUG')
+			queries=crawler.settings.get('SQLMAGIC_QUERIES', {}),
+			debug=crawler.settings.getbool('SQLMAGIC_DEBUG')
 		)
 		return o
 
@@ -339,7 +413,7 @@ class SQLPipeline(object):
 		if not isinstance(item, SQLItem):
 			return item
 
-		self.stats.inc_value('sqlpipeline/total_items_caught')
+		self.stats.inc_value('sqlmagic/total_items_caught')
 
 		# always return original item
 		deferred = self.operation(item, spider)
@@ -349,14 +423,14 @@ class SQLPipeline(object):
 	def operation(self, item, spider):
 
 		def on_insert(result, query, params):
-			self.stats.inc_value('sqlpipeline/sqlop_success_insert')
+			self.stats.inc_value('sqlmagic/sqlop_success_insert')
 			if self.debug:
 				qlog = self._log_preparedsql(query, params)
 				log.msg('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG, spider=spider)
 			return result
 
 		def on_update(result, query, params):
-			self.stats.inc_value('sqlpipeline/sqlop_success_update')
+			self.stats.inc_value('sqlmagic/sqlop_success_update')
 			if self.debug:
 				qlog = self._log_preparedsql(query, params)
 				log.msg('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG, spider=spider)
@@ -365,7 +439,7 @@ class SQLPipeline(object):
 		def on_integrityerror(error, query, params):
 			error.trap(self.dbapi.IntegrityError)
 			e = error.getErrorMessage()
-			self.stats.inc_value('sqlpipeline/error_integrity')
+			self.stats.inc_value('sqlmagic/error_integrity')
 			if self.debug:
 				qlog = self._log_preparedsql(query, params)
 				log.msg('%s failed executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.INFO, spider=spider)
@@ -374,7 +448,7 @@ class SQLPipeline(object):
 		def on_operationalerror(error, query, params):
 			error.trap(self.dbapi.OperationalError)
 			e = error.getErrorMessage()
-			self.stats.inc_value('sqlpipeline/error_operational')
+			self.stats.inc_value('sqlmagic/error_operational')
 			if self.debug:
 				qlog = self._log_preparedsql(query, params)
 				log.msg('%s failed executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING, spider=spider)
@@ -383,7 +457,7 @@ class SQLPipeline(object):
 		def on_seriouserror(error, query, params):
 			error.trap(self.dbapi.ProgrammingError, self.dbapi.InterfaceError)
 			e = error.getErrorMessage()
-			self.stats.inc_value('sqlpipeline/error_connection')
+			self.stats.inc_value('sqlmagic/error_connection')
 			if self.debug:
 				qlog = self._log_preparedsql(query, params)
 				log.msg('%s FAILED executing: %s\nError: %s' % (self.__class__.__name__, qlog, e), level=log.WARNING, spider=spider)
@@ -398,7 +472,7 @@ class SQLPipeline(object):
 			#if self.debug:
 			#	qlog = self._log_preparedsql(query, params)
 			#	log.msg('%s got error %s - trying update' % (self.__class__.__name__, e), level=log.DEBUG, spider=spider)
-			self.stats.inc_value('sqlpipeline/sqlop_update_after_insert_tries')
+			self.stats.inc_value('sqlmagic/sqlop_update_after_insert_tries')
 			d = self.__dbpool.runInteraction(self.transaction, query, params, item, spider)
 			d.addCallback(on_update, query, params)
 			return d
@@ -421,13 +495,14 @@ class SQLPipeline(object):
 
 	#	deferred = self.insert_or_update((query,params), (update, uparams), item, spider)
 
-		self.stats.inc_value('sqlpipeline/total_items_returned')
+		self.stats.inc_value('sqlmagic/total_items_returned')
 		return deferred
 
 	def transaction(self, txn, query, params, item, spider):
-		self.stats.inc_value('sqlpipeline/sqlop_transact_%s' % query[:6].lower())
+		self.stats.inc_value('sqlmagic/sqlop_transact_%s' % query[:6].lower())
 		txn.execute(query, params)
 
+	"""
 	def xtransaction(self, txn, query, params, item, spider):
 		# primary key check
 		query, params = _sql_format(self.queries['select'], item, paramstyle=self.paramstyle, identifier=self.identifier)
@@ -467,9 +542,10 @@ class SQLPipeline(object):
 		finally:
 			if self.debug:
 				spider.log('%s executed: %s' % (self.__class__.__name__, qlog), level=log.DEBUG)
+	"""
 
 	def _log_preparedsql(self, query, params):
-		""" simulate escaped query for log """
+		"""Simulate escaped query for log"""
 		for p in params:
 			query = re.sub('(\\'+self.paramstyle+r'\d?)', '"%s"' % p, query, count=1)
 		return query
