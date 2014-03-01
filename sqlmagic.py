@@ -8,6 +8,8 @@ It uses "magic variables" in "prepared SQL statements"
 simple SQL statements, without adding the complexities
 and pitfalls of an ORM.
 
+(WIP. CURRENTLY ONLY RUNS DEFINED 'insert' and 'update' QUERIES.)
+
     ITEM_PIPELINES = [
         'project.pipelines.sqlmagic.SQLMagicPipeline',
     ]
@@ -558,4 +560,50 @@ class SQLMagicPipeline(object):
 			log.err(e)
 
 	def query(self, sql):
-		return self.__dbpool.runQuery(sql)
+		# run a query in the connection pool
+		# parameters for prepared statements must be passed as 'sql=(query, params)'
+		# (possible use-case from inside spider code)
+		'''Spider Example: build start requests from database results
+
+		from scrapy.exceptions import CloseSpider, NotConfigured
+		from ..pipelines.sqlmagic import SQLMagicPipeline
+
+		class MySpider(Spider):
+			def spider_opened(self, spider):
+				try:
+					self.db = SQLMagicPipeline(self.settings.get('SQLMAGIC_DATABASE'))
+				except NotConfigured:
+					raise CloseSpider('Could not get database settings.')
+
+			@defer.inlineCallbacks
+			def db_queries(self, response):
+				query = """CALL procedure ()"""
+				result = yield self.db.query(query)
+
+				# build requests
+				requests = []
+				for value in result:
+					r = yield self.build_request_fromdb(response, value)
+					requests.append(r)
+
+				# queue them
+				defer.returnValue(requests)
+
+			def start_requests(self):
+				yield Request(self.start_urls[0], callback=self.database_queries)
+
+			def build_request_fromdb(self, response, db):
+				# custom logic to convert db result into a request
+				r = Request(response.url)
+				r.callback = self.parse
+				return r
+		'''
+		if query[:6].lower() in ('select',):
+			deferred = self.__dbpool.runQuery(sql)
+		if query[:4].lower() in ('call',):
+			# potential fail: procedure must run a SELECT for this,
+			# otherwise it should do runOperation
+			deferred = self.__dbpool.runQuery(sql)
+		else:
+			deferred = self.__dbpool.runOperation(sql)
+		return deferred
