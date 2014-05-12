@@ -1,4 +1,3 @@
-=========
 scrapyext
 =========
 
@@ -8,8 +7,8 @@ Quality of code may differ vastly between modules and anything here might not be
 fit for (any) use. No warranties.
 
 Manifest
-````````
-[scrapyext][scrapyext] is meant as a source for additional modules and code
+--------
+[scrapyext][scrapyext.git] is meant as a source for additional modules and code
 fragments, which may be useful and reuseable, but don't necessarily meet the
 requirements for inclusion in a 'official' code library.
 
@@ -24,22 +23,18 @@ As such `scrapyext` should be seen as a namespace to find scrapy modules,
 hacks and related code, that are outside the scope of scrapy/lib,  without
 hunting down gists and snippets all over the web.
 
-Possibly a staging ground for improving WIPs for later pushing into `scrapylib`
-or `scrapy` (and lowering the entry barrier for contributions).
-
 Code in this repo
-`````````````````
+-----------------
 * doesn't require (but welcomes) unittests,
 * may not follow best practices,
 * may be deprecated,
 * may not work with current scrapy versions,
 * isn't officially endorsed or supported by anyone,
-
 * must be generic enough to be useful across projects,
 * should be BSD licensed to allow merging with scrapy's codebase.
 
 License
-```````
+-------
 Code is licensed (3-clause) BSD, unless noted otherwise.
 
 ----

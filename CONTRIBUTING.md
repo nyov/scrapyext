@@ -1,23 +1,22 @@
-=============
 Contributions
 =============
 
 Contributions welcome, only a few rules should be obeyed:
 
-* reusability 
+* reusability  
   Code is written with re-useability in mind.
   (no hardcoded local paths, settings, local database tables)
-* relevance 
+* relevance  
   Code should not be too generic, and actually tie into scrapy.
   (no formatter script for your output json files,
    but maybe if it's generic and a scrapy pipeline/extension)
-* prefer existing code 
+* prefer existing code  
   Adding another e.g. mysql adbapi pipeline is instead of generalizing
   an existing one is undesirable. If it's using a different library
   (e.g. sqlalchemy) instead, to do the same thing, it's welcome.
 
 About code formatting
-`````````````````````
+---------------------
 I don't believe in living by the pep8 bible. My preference are Tabs,
 and I save 3 bytes on every indent versus PEP-8 style.
 
@@ -31,13 +30,6 @@ convert others existing files without good reason (major rewrite).
 
 Breaking lines at exactly 72 [CPL][1] is not so useful either
 if legibility is worse for it. Use best judgement.
-
-Git should take care of conversion of fileendings (for text files) on
-commit, and checking out in your OS's standard fileending, but if in
-doubt use Linux fileendings (LineFeed only - another byte saved).
-Use `dos2unix`/`unix2dos`/`unix2mac` to manually convert files.
-
-(Also, utf-8 fileencoding with or without BOM.)
 
 ----
 [1]: https://en.wikipedia.org/wiki/Characters_per_line
