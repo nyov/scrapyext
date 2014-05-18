@@ -8,6 +8,13 @@ It uses "magic variables" in "prepared SQL statements"
 simple SQL statements, without adding the complexities
 and pitfalls of an ORM.
 
+WARNING: If you use ItemLoaders, you will also need to use
+ a patched ItemLoader, which returns None values for empty
+ fields, otherwise the SQL will LOSE FIELDS on insert/update,
+ instead of setting then NULL.
+ This might be disastrous if it happens on index (UniqueField) fields.
+ see `scrapyext/loader.py` for the patched ItemLoader
+
 (WIP. CURRENTLY ONLY RUNS DEFINED 'insert' and 'update' QUERIES.)
 
     ITEM_PIPELINES = [
