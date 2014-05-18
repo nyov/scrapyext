@@ -307,7 +307,7 @@ class SQLMagicPipeline(object):
 		self.stats = kwargs.get('stats')
 		self.debug = kwargs.get('debug', False)
 		self.paramstyle = ':'
-		self.identifier = '"' # ANSI quoting
+		self.identifier = '"' # default to ANSI quoting
 		self.queries = {
 			'select': "SELECT $fields FROM $table:esc WHERE $indices:and", # select on UniqueFields
 			'selectall': "SELECT $fields FROM $table:esc",
@@ -357,7 +357,6 @@ class SQLMagicPipeline(object):
 				'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
 				'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
 			})
-
 		elif self.settings.get('drivername') == 'mysql':
 			self.dbapi = __import__('MySQLdb', fromlist=[''])
 			from MySQLdb import cursors
@@ -382,6 +381,22 @@ class SQLMagicPipeline(object):
 				'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
 			#	'upsert': "REPLACE INTO $table ($fields) VALUES ($values)",
 				'upsert': "INSERT INTO $table:esc SET $fields_values ON DUPLICATE KEY UPDATE $fields_values",
+				'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
+			})
+		elif self.settings.get('drivername') == 'firebird':
+			# untested
+			self.dbapi = __import__('fdb', fromlist=[''])
+			self.__dbpool = ConnectionPool('fdb', database=self.settings.get('database'),
+				user = self.settings.get('username'),
+				password = self.settings.get('password', None),
+				host = self.settings.get('host', None), # default to unix socket
+				port = self.settings.get('port', 3050),
+				#dialect = 1, # necessary for all dialect 1 databases
+				charset = 'UTF8',# specify a character set for the connection
+			)
+			self.paramstyle = '?'
+			self.queries.update({
+				'insert': "INSERT INTO $table:esc ($fields) VALUES ($values)",
 				'update': "UPDATE $table:esc SET $fields_values WHERE $indices:and",
 			})
 
