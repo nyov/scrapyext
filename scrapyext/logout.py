@@ -3,10 +3,7 @@ from scrapy.xlib.pydispatch import dispatcher
 from scrapy.exceptions import DontCloseSpider
 
 from scrapy import log
-try:
-	from scrapy.spider import Spider # scrapy 0.22
-except ImportError:
-	from scrapy.spider import BaseSpider as Spider
+from scrapy.spider import Spider
 from scrapy.http import Request
 
 

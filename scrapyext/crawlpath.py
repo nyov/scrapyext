@@ -97,6 +97,7 @@ from scrapy.http.request import Request
 import re
 from scrapy import log
 
+
 class CrawlPathMiddleware(object):
     """SpiderMiddleware to shape the crawl path of a CrawlSpider-like spider using PATH_TUPLES defined in settings.py"""
 
@@ -160,7 +161,7 @@ class CrawlPathMiddleware(object):
         return None
 
     def log(self, message, spider, level=log.DEBUG):
-        """Log the given messages at the given log level.  Stolen from BaseSpider."""
+        """Log the given messages at the given log level.  Stolen from Spider."""
         # prepend the name of this class to message
         message = '[' + self.__class__.__name__ + '] ' + message
         log.msg(message, spider=spider, level=level)

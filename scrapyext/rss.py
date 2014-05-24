@@ -8,25 +8,19 @@ and download feedparser that strives to resolve it from [here](http://feedparser
 The scripts processes only certain elements in the feeds(title, link and summary)
 The items may be saved in the Item pipeline which I leave to you.
 
-Please let me know about any discrepencies you may find in the technical and functional aspects of this scipt.
-
--Sid
-
 imported from
 http://snipplr.com/view/67003/scrapy-snippet-to-gather-rss-feeds-on-a-pageusing-feedparser/
 
 # author: itissid
-# date  : Feb 20, 2011
 """
 
 import feedparser
 import re
 import urlparse
 
-from scrapy.spider import BaseSpider
+from scrapy.spider import Spider
 
-from scrapy.selector import HtmlXPathSelector
-from scrapy.selector import XmlXPathSelector
+from scrapy.selector import Selector
 from scrapy.http import Request
 
 
@@ -50,7 +44,7 @@ class RssEntryItem(RssFeedItem):
 	published = Field()
 
 
-class RSSSpider(BaseSpider):
+class RSSSpider(Spider):
 	name = "rssspider"
 	allowed_domain = ["news.google.com"]
 	start_urls = [
@@ -63,18 +57,17 @@ class RSSSpider(BaseSpider):
 
 
 	def parse(self, response):
-		hxs = HtmlXPathSelector(response)
+		sel = Selector(response)
 		base_url = response.url
 		res = urlparse.urlparse(base_url)
 		self.allowed_domain = [res.netloc]
 
 		print ('**********BASE URL********',base_url)
-		links = hxs.select('//a/@href').extract()
+		links = sel.xpath('//a/@href').extract()
 		self.num_links = len(links)
 		self.num_links_proc = 0
 		print 'Number of links TBP %s'%(self.num_links)
 		for url in links:
-			#TODO: Inform mongo about progress
 			if(self._http_pattern.match(url)):
 				# this is an absolute URL
 				if url.find(self.allowed_domain[0])!=-1 :
@@ -97,17 +90,16 @@ class RSSSpider(BaseSpider):
 		r = self.detect_feed(response)
 		if r:
 			yield r
-		pass
 
 	# detect an RSS Feed and return a RssFeedItem Object
 	def detect_feed(self, response):
 		"""Just detects the feed in the links and returns an Item"""
-		xxs = XmlXPathSelector(response)
+		sel = Selector(response)
 		'''Need to tweak the feedparser lib to just use the headers from response instead of
 		d/l the feed page again, rather than d/l it again
 		'''
 
-		if any(xxs.select("/%s" % feed_type) for feed_type in ['rss', 'feed', 'xml', 'rdf']):
+		if any(sel.xpath("/%s" % feed_type) for feed_type in ['rss', 'feed', 'xml', 'rdf']):
 			try:
 				rssFeed = feedparser.parse(response.url)
 				return self.extract_feed(rssFeed)
@@ -153,7 +145,8 @@ class RSSSpider(BaseSpider):
 
 			if r['entries']:
 					return r
-			# if there are no entries return null
+
+		# if there are no entries return null
 		return None
 
 	def dateHandler(self, dateString):

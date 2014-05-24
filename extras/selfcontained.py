@@ -16,15 +16,13 @@ Changelog:
 imported from
 http://snipplr.com/view/67012/selfcontained-script-to-crawl-a-site-updated-scrapy-130dev/
 
-# Snippet imported from snippets.scrapy.org (which no longer works)
 # author: darkrho
-# date  : Aug 25, 2010
 """
 
-from scrapy.contrib.loader import XPathItemLoader
+from scrapy.contrib.loader import ItemLoader
 from scrapy.item import Item, Field
-from scrapy.selector import HtmlXPathSelector
-from scrapy.spider import BaseSpider
+from scrapy.selector import Selector
+from scrapy.spider import Spider
 
 
 class QuestionItem(Item):
@@ -41,7 +39,7 @@ class QuestionItem(Item):
     views = Field()
 
 
-class MySpider(BaseSpider):
+class MySpider(Spider):
     """Our ad-hoc spider"""
     name = "myspider"
     start_urls = ["http://stackoverflow.com/"]
@@ -49,10 +47,10 @@ class MySpider(BaseSpider):
     question_list_xpath = '//div[@id="content"]//div[contains(@class, "question-summary")]'
 
     def parse(self, response):
-        hxs = HtmlXPathSelector(response)
+        sel = Selector(response)
 
-        for qxs in hxs.select(self.question_list_xpath):
-            loader = XPathItemLoader(QuestionItem(), selector=qxs)
+        for qxs in sel.xpath(self.question_list_xpath):
+            loader = ItemLoader(QuestionItem(), selector=qxs)
             loader.add_xpath('title', './/h3/a/text()')
             loader.add_xpath('summary', './/h3/a/@title')
             loader.add_xpath('tags', './/a[@rel="tag"]/text()')

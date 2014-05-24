@@ -3,27 +3,24 @@ WebDriverSpider - rendered javascript with webdrivers
 
 This is a piece of code that use webdrivers to load&render a page with Scrapy and Selenium.
 
-This work is based on the snippets [wynbennett](http://snippets.scrapy.org/users/wynbennett/)
-[posted here](http://snippets.scrapy.org/snippets/21/) some time ago
-
 imported from
 http://snipplr.com/view/66997/rendered-javascript-with-webdrivers/
 
-# Snippet imported from snippets.scrapy.org (which no longer works)
 # author: rollsappletree
-# date  : Aug 25, 2011
 """
 
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
-from scrapy.selector import HtmlXPathSelector
+from scrapy.selector import Selector
 from scrapy.http import Request
-from myItem.items import myItem
+from project.items import Item
+
 from selenium import webdriver
 from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 
 import time
 import pprint
+
 
 class WebDriverSpider(CrawlSpider):
     name = "WebDriverSpider"
@@ -48,20 +45,20 @@ class WebDriverSpider(CrawlSpider):
 
     def parse_page(self, response):
         #normal scrapy result
-        hxs = HtmlXPathSelector(response)
+        sel = Selector(response)
         #webdriver rendered page
-        sel = self.selenium
-        sel.get(response.url)
+        len = self.selenium
+        len.get(response.url)
 
-        if sel:
+        if len:
             #Wait for javascript to load in Selenium
             time.sleep(2.5)
 
         #Do some crawling of javascript created content with Selenium
-        item = myItem()
+        item = Item()
         item['url'] = response.url
-        item['title'] = hxs.select('//title/text()').extract()
+        item['title'] = sel.xpath('//title/text()').extract()
 
 
         #something u can do only with webdrivers
-        item['thatDiv'] = sel.find_element_by_id("thatDiv")
+        item['thatDiv'] = len.find_element_by_id("thatDiv")

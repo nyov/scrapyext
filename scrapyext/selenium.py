@@ -28,7 +28,7 @@ from selenium import selenium
 
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
-from scrapy.selector import HtmlXPathSelector
+from scrapy.selector import Selector
 from scrapy.http import Request
 
 
@@ -54,16 +54,16 @@ class SeleniumSpider(CrawlSpider):
 	def parse_page(self, response):
 		item = Item()
 
-		hxs = HtmlXPathSelector(response)
+		sel = Selector(response)
 		#Do some XPath selection with Scrapy
-		hxs.select('//div').extract()
+		sel.xpath('//div').extract()
 
-		sel = self.selenium
-		sel.open(response.url)
+		len = self.selenium
+		len.open(response.url)
 
 		#Wait for javscript to load in Selenium
 		time.sleep(2.5)
 
 		#Do some crawling of javascript created content with Selenium
-		sel.get_text("//div")
+		len.get_text("//div")
 		yield item
