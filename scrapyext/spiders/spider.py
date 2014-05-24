@@ -7,7 +7,6 @@ from scrapy import log
 from scrapy.http import Request
 from scrapy.utils.trackref import object_ref
 from scrapy.utils.url import url_is_from_spider
-from scrapy.utils.deprecate import create_deprecated_class
 
 
 class Spider(object_ref):
@@ -63,19 +62,3 @@ class Spider(object_ref):
         return "<%s %r at 0x%0x>" % (type(self).__name__, self.name, id(self))
 
     __repr__ = __str__
-
-
-BaseSpider = create_deprecated_class('BaseSpider', Spider)
-
-
-class ObsoleteClass(object):
-    def __init__(self, message):
-        self.message = message
-
-    def __getattr__(self, name):
-        raise AttributeError(self.message)
-
-spiders = ObsoleteClass("""
-"from scrapy.spider import spiders" no longer works - use "from scrapy.project import crawler" and then access crawler.spiders attribute"
-""")
-

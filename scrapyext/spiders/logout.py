@@ -3,8 +3,8 @@ from scrapy.xlib.pydispatch import dispatcher
 from scrapy.exceptions import DontCloseSpider
 
 from scrapy import log
-from scrapy.spider import Spider
 from scrapy.http import Request
+from .spider import Spider
 
 
 class LogoutSpider(Spider):

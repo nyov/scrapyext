@@ -29,8 +29,8 @@ http://snipplr.com/view/67016/parsley-spider/
 
 from pyparsley import PyParsley
 
-from scrapy.contrib.spiders import CrawlSpider
 from scrapy.item import Item, Field
+from .crawl import CrawlSpider
 
 
 class ParsleyItem(Item):

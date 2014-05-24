@@ -18,8 +18,7 @@ import feedparser
 import re
 import urlparse
 
-from scrapy.spider import Spider
-
+from .spider import Spider
 from scrapy.selector import Selector
 from scrapy.http import Request
 

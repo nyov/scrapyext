@@ -4,7 +4,7 @@ for scraping from an XML feed.
 
 See documentation in docs/topics/spiders.rst
 """
-from scrapy.spider import Spider
+from .spider import Spider
 from scrapy.item import BaseItem
 from scrapy.http import Request
 from scrapy.utils.iterators import xmliter, csviter

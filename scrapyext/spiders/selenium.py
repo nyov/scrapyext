@@ -26,7 +26,7 @@ http://snipplr.com/view/66998/rendered-javascript-crawler-with-scrapy-and-seleni
 
 from selenium import selenium
 
-from scrapy.contrib.spiders import CrawlSpider, Rule
+from .crawl import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.selector import Selector
 from scrapy.http import Request
