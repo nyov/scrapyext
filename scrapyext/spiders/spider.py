@@ -1,17 +1,31 @@
 """
-Base class for Scrapy spiders
+Base class for scrapyext spiders
 
-See documentation in docs/topics/spiders.rst
+This Spider requires a modifed Scraper class to get called correctly.
 """
 from scrapy import log
 from scrapy.http import Request
 from scrapy.utils.trackref import object_ref
 from scrapy.utils.url import url_is_from_spider
 
+from scrapy.core.scraper import Scraper as _Scraper
+from scrapy.utils.spider import iterate_spider_output
+from scrapy.utils.defer import defer_result
+
+
+class Scraper(_Scraper):
+    """Modified Scraper to handle these Spiders correctly."""
+
+    def call_spider(self, result, request, spider):
+        result.request = request
+        dfd = defer_result(result) #                vvvvvvvvvvvv - patched
+        dfd.addCallbacks(request.callback or spider.from_scraper, request.errback)
+        return dfd.addCallback(iterate_spider_output)
+
 
 class Spider(object_ref):
-    """Base class for scrapy spiders. All spiders must inherit from this
-    class.
+    """Base class for scrapyext spiders.
+    All spiders must inherit from this class.
     """
 
     name = None
@@ -50,6 +64,10 @@ class Spider(object_ref):
 
     def make_requests_from_url(self, url):
         return Request(url, dont_filter=True)
+
+    def from_scraper(self, response):
+        """Scraper entrypoint."""
+        return self.parse(response)
 
     def parse(self, response):
         raise NotImplementedError
