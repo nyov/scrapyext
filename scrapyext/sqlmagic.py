@@ -10,12 +10,10 @@ and pitfalls of an ORM.
 
 WARNING: If you use ItemLoaders, you will also need to use
  a patched ItemLoader, which returns None values for empty
- fields, otherwise the SQL will LOSE FIELDS on insert/update,
- instead of setting then NULL.
+ fields, otherwise the SQL statement will LOSE FIELDS on
+ insert/update, instead of setting them NULL.
  This might be disastrous if it happens on index (UniqueField) fields.
  see `scrapyext/loader.py` for the patched ItemLoader
-
-(WIP. CURRENTLY ONLY RUNS DEFINED 'insert' and 'update' QUERIES.)
 
     ITEM_PIPELINES = [
         'project.pipelines.sqlmagic.SQLMagicPipeline',
@@ -39,12 +37,12 @@ Settings:
     # log prepared sql queries and operational errors for debugging
     SQLMAGIC_DEBUG = True # (bool)
 
-Define items for SQLPipeline in your items.py as such:
+Define items for SQLMagicPipeline in your items.py as such:
 
 ```
-from .pipelines.sqlmagic import SQLItem, UniqueField
+from .pipelines.sqlmagic import SQLDBItem, UniqueField
 
-class MyItem(SQLItem):
+class MyItem(SQLDBItem):
 	__tablename__ = 'my_items'
 
 	# sql unique key field:
@@ -119,7 +117,7 @@ Your query template for this Item, using a MySQL database, could look like this:
 
 "INSERT INTO $table SET $fields_values ON DUPLICATE KEY UPDATE $fields_values"
 
-which SQLPipeline would evaluate into:
+which SQLMagicPipeline would evaluate into:
 
 "INSERT INTO `book` SET `isbn`=?,`title`=?,`description`=?
 	ON DUPLICATE KEY UPDATE `isbn`=?,`title`=?,`description`=?"
@@ -285,12 +283,12 @@ def _sql_format(query, item, paramstyle=':', identifier='"'):
 
 
 class UniqueField(Field):
-	"""Field to tell SQLPipeline about an index.
+	"""Field to tell SQLMagicPipeline about an index.
 	"""
 
 
-class SQLItem(Item):
-	"""Item to support database operations in SQLPipeline.
+class SQLDBItem(Item):
+	"""Item to support database operations in SQLMagicPipeline.
 	"""
 	__tablename__ = ''
 
