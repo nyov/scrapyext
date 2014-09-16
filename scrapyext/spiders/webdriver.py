@@ -9,7 +9,7 @@ http://snipplr.com/view/66997/rendered-javascript-with-webdrivers/
 # author: rollsappletree
 """
 
-from scrapy.contrib.spiders import CrawlSpider, Rule
+from .crawl import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.selector import Selector
 from scrapy.http import Request

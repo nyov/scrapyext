@@ -3,11 +3,12 @@ from scrapy.xlib.pydispatch import dispatcher
 from scrapy.exceptions import DontCloseSpider
 
 from scrapy import log
-from scrapy.spider import Spider
 from scrapy.http import Request
+from .spider import Spider
 
 
 class LogoutSpider(Spider):
+	"""Spider which can clean up before terminating."""
 
 	logout_url = ''
 
@@ -26,8 +27,8 @@ class LogoutSpider(Spider):
 	def logout(self, response=None):
 		if response and response.meta.get('logout_sent', None):
 			# verify logout?
-			if 'Logged out' in response.body:
-				self.log('Logout successful.', level=log.INFO)
+			#if 'Logged out' in response.body:
+			#	self.log('Logout successful.', level=log.INFO)
 			return
 
 		self.log('Closing down with logout...', level=log.INFO)
