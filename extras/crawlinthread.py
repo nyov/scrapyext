@@ -20,9 +20,7 @@ stable yet), but you get the idea.
 imported from
 http://snipplr.com/view/67015/run-scrapy-crawler-in-a-thread/
 
-# Snippet imported from snippets.scrapy.org (which no longer works)
 # author: pablo
-# date  : Aug 11, 2010
 """
 
 # for scrapy 0.8
@@ -32,7 +30,6 @@ import threading, Queue
 
 from twisted.internet import reactor
 
-from scrapy.xlib.pydispatch import dispatcher
 from scrapy.core.manager import scrapymanager
 from scrapy.core.engine import scrapyengine
 from scrapy.core import signals
@@ -40,9 +37,14 @@ from scrapy.core import signals
 
 class CrawlerThread(threading.Thread):
 
-    def __init__(self):
+    def __init__(self, crawler):
         threading.Thread.__init__(self)
         self.running = False
+        self.crawler = crawler
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler)
 
     def run(self):
         self.running = True
@@ -54,7 +56,7 @@ class CrawlerThread(threading.Thread):
         if not self.running:
             raise RuntimeError("CrawlerThread not running")
         self._call_and_block_until_signal(signals.spider_closed, \
-            scrapymanager.crawl, *args)
+                scrapymanager.crawl, *args)
 
     def stop(self):
         reactor.callFromThread(scrapyengine.stop)
@@ -63,7 +65,7 @@ class CrawlerThread(threading.Thread):
         q = Queue.Queue()
         def unblock():
             q.put(None)
-        dispatcher.connect(unblock, signal=signal)
+        self.crawler.signals.connect(unblock, signal=signal)
         reactor.callFromThread(f, *a, **kw)
         q.get()
 

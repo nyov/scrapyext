@@ -6,9 +6,7 @@ Using Scrapy crawler with a blocking API from a thread
 imported from
 http://snipplr.com/view/67010/using-scrapy-crawler-with-a-blocking-api-from-a-thread/
 
-# Snippet imported from snippets.scrapy.org (which no longer works)
 # author: pablo
-# date  : Aug 26, 2010
 """
 # This script shows how you can use the Scrapy crawler from a thread simulating a blocking API:
 #
@@ -37,20 +35,19 @@ http://snipplr.com/view/67010/using-scrapy-crawler-with-a-blocking-api-from-a-th
 #     [ ... Scrapy termination log here ... ]
 #     $
 
-from scrapy import log, signals
-from scrapy.utils.console import start_python_console
-from scrapy.xlib.pydispatch import dispatcher
-from scrapy.conf import settings
-from scrapy.crawler import Crawler
-from twisted.internet import threads
+from scrapy import signals
 
 
 class BlockingCrawlerFromThread(object):
 
     def __init__(self, crawler):
         self.crawler = crawler
-        dispatcher.connect(self._spider_closed, signals.spider_closed)
-        dispatcher.connect(self._item_passed, signals.item_passed)
+        crawler.signals.connect(self._spider_closed, signal=signals.spider_closed)
+        crawler.signals.connect(self._item_passed, signal=signals.item_passed)
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler)
 
     def _crawl(self, spider_name):
         spider = self.crawler.spiders.create(spider_name)
@@ -69,12 +66,21 @@ class BlockingCrawlerFromThread(object):
     def crawl(self, spider_name):
         return threads.blockingCallFromThread(reactor, self._crawl, spider_name)
 
+
+from twisted.internet import threads
+from scrapy import log
+from scrapy.utils.console import start_python_console
+from scrapy.conf import settings
+from scrapy.crawler import CrawlerProcess
+
 log.start()
-#settings.overrides['SPIDER_QUEUE_CLASS'] = 'scrapy.queue.KeepAliveExecutionQueue'
-crawler = Crawler(settings)
-crawler.install()
-crawler.configure()
+# FIXME
+settings.overrides['QUEUE_CLASS'] = 'scrapy.core.queue.KeepAliveExecutionQueue'
+crawler_process = CrawlerProcess(settings)
+crawler_process.configure()
+crawler_process.install()
 blocking_crawler = BlockingCrawlerFromThread(crawler)
 d = threads.deferToThread(start_python_console, {'crawler': blocking_crawler})
-d.addBoth(lambda x: crawler.stop())
-crawler.start()
+# FIXME
+d.addBoth(lambda x: crawler_process.stop())
+crawler_process.start()

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 """
 Using Scrapy from a script
 
@@ -29,8 +30,9 @@ from multiprocessing import Process, Queue
 
 class CrawlerScript():
 
-    def __init__(self):
+    def __init__(self, settings):
         self.crawler = CrawlerProcess(settings)
+        self.settings = self.crawler.settings
         if not hasattr(project, 'crawler'):
             self.crawler.install()
         self.crawler.configure()
@@ -57,13 +59,14 @@ class CrawlerScript():
 
 # Usage
 if __name__ == "__main__":
-    log.start()
-
     """
     This example runs spider1 and then spider2 three times.
     """
+    from scrapy.utils.project import get_project_settings
+    settings = get_project_settings()
+    settings.set('LOG_ENABLED', False, priority='cmdline')
     items = list()
-    crawler = CrawlerScript()
+    crawler = CrawlerScript(settings)
     items.append(crawler.crawl('spider1'))
     for i in range(3):
         items.append(crawler.crawl('spider2'))
