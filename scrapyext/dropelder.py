@@ -21,20 +21,29 @@ warrant changes to infrastructure?
 imported from
 http://snipplr.com/view/67004/dropeldermiddleware/
 
-# Snippet imported from snippets.scrapy.org (which no longer works)
 # author: Chris2048
-# date  : Dec 03, 2010
 """
 
+from scrapy import signals
+
+
 class DropElderMiddleware(object):
-    def __init__(self):
-        dispatcher.connect(self.spider_opened, signal=signals.spider_opened)
-        dispatcher.connect(self.spider_closed, signal=signals.spider_closed)
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        o = cls()
+        crawler.signals.connect(o.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(o.spider_closed, signal=signals.spider_closed)
+        return o
 
     def spider_opened(self, spider):
-        #restore lastcheck
+        # restore lastcheck
         self.lastcheck = datetime(2010, 11, 7, 21, 17, 27)
         self.newest = self.lastcheck
+
+    def spider_closed(self, spider):
+        # save lastcheck
+        print self.newest
 
     def process_spider_output(self, response, result, spider):
         reqs = None
@@ -54,7 +63,3 @@ class DropElderMiddleware(object):
         log.msg("%i items scraped (%i dropped)" % (nold + nnew, nold), level=log.INFO)
         if not nold:
             yield reqs
-
-    def spider_closed(self, spider):
-        # save lastcheck
-        print self.newest

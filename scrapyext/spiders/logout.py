@@ -1,5 +1,4 @@
 from scrapy import signals
-from scrapy.xlib.pydispatch import dispatcher
 from scrapy.exceptions import DontCloseSpider
 
 from scrapy import log
@@ -12,8 +11,16 @@ class LogoutSpider(Spider):
 
 	logout_url = ''
 
+	def __init__(self, crawler):
+		self.crawler = crawler
+
+	@classmethod
+	def from_crawler(cls, crawler):
+		o = cls(crawler)
+		crawler.signals.connect(o.spider_logout, signal=signals.spider_idle)
+		return o
+
 	def start_requests(self):
-		dispatcher.connect(self.spider_logout, signal=signals.spider_idle)
 		return super(LogoutSpider, self).start_requests()
 
 	logout_done = False

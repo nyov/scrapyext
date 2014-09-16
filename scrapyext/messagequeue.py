@@ -18,7 +18,6 @@ Settings:
 
 """
 
-from scrapy.xlib.pydispatch import dispatcher
 from scrapy import signals
 from scrapy.exceptions import DropItem
 from scrapy.utils.serialize import ScrapyJSONEncoder
@@ -28,14 +27,14 @@ from carrot.messaging import Publisher
 
 from twisted.internet.threads import deferToThread
 
+
 class MessageQueuePipeline(object):
+
     def __init__(self, host_name, port, userid, password, virtual_host, encoder_class):
         self.q_connection = BrokerConnection(hostname=host_name, port=port,
                         userid=userid, password=password,
                         virtual_host=virtual_host)
         self.encoder = encoder_class()
-        dispatcher.connect(self.spider_opened, signals.spider_opened)
-        dispatcher.connect(self.spider_closed, signals.spider_closed)
 
     @classmethod
     def from_settings(cls, settings):
@@ -46,6 +45,13 @@ class MessageQueuePipeline(object):
         virtual_host = settings.get('BROKER_VIRTUAL_HOST', "/")
         encoder_class = settings.get('MESSAGE_Q_SERIALIZER', ScrapyJSONEncoder)
         return cls(host_name, port, userid, password, virtual_host, encoder_class)
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        o = cls(crawler)
+        crawler.signals.connect(o.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(o.spider_closed, signal=signals.spider_closed)
+        return o
 
     def spider_opened(self, spider):
         self.publisher = Publisher(connection=self.q_connection,
