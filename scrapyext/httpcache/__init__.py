@@ -1,1 +1,1 @@
-from .httpcache import MongoCacheStorage
+from .mongocache import MongoCacheStorage
