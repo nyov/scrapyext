@@ -7,7 +7,7 @@ from scrapy.http import Headers
 
 from gridfs import GridFS, errors
 
-from scmongo.util import get_database
+from .util import get_database
 
 
 class MongoCacheStorage(object):
@@ -37,7 +37,7 @@ class MongoCacheStorage(object):
         respcls = responsetypes.from_args(headers=headers, url=url)
         response = respcls(url=url, headers=headers, status=status, body=body)
         return response
- 
+
     def store_response(self, spider, request, response):
         key = spider.name + '/' + self._request_key(request)
         kwargs = {
