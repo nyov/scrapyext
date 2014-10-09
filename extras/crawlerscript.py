@@ -9,6 +9,10 @@ class MySpider(scrapy.Spider):
 
 	name = 'my_spider'
 
+	def __init__(self, **kw):
+		super(MySpider, self).__init__(**kw)
+		stuff = kw.get('stuff')
+
 
 if __name__ == "__main__":
 	# for scrapy 0.24
@@ -17,7 +21,7 @@ if __name__ == "__main__":
 	from scrapy.crawler import Crawler
 	from scrapy import log, signals
 
-	spider = MySpider()
+	spider = MySpider(stuff='stuff')
 	settings = get_project_settings()
 	crawler = Crawler(settings)
 	crawler.signals.connect(reactor.stop, signal=signals.spider_closed)
