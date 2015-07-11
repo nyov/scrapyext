@@ -41,7 +41,9 @@ from scrapy import log, signals
 from scrapy.utils.console import start_python_console
 from scrapy.xlib.pydispatch import dispatcher
 from scrapy.conf import settings
-from scrapy.crawler import CrawlerProcess
+from scrapy.crawler import Crawler
+from twisted.internet import threads
+
 
 class BlockingCrawlerFromThread(object):
 
@@ -68,8 +70,8 @@ class BlockingCrawlerFromThread(object):
         return threads.blockingCallFromThread(reactor, self._crawl, spider_name)
 
 log.start()
-settings.overrides['QUEUE_CLASS'] = 'scrapy.core.queue.KeepAliveExecutionQueue'
-crawler = CrawlerProcess(settings)
+#settings.overrides['SPIDER_QUEUE_CLASS'] = 'scrapy.queue.KeepAliveExecutionQueue'
+crawler = Crawler(settings)
 crawler.install()
 crawler.configure()
 blocking_crawler = BlockingCrawlerFromThread(crawler)

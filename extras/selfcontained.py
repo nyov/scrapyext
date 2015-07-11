@@ -5,19 +5,9 @@ Self-contained script to crawl a site
 
 This scripts shows how to crawl a site without settings up a complete project.
 
-Note: the `crawler.start()` can't be called more than once due twisted's reactor limitation.
-
-author: Rolando Espinoza La fuente
-
-Changelog:
-    24/07/2011 - updated to work with scrapy 13.0dev
-    25/08/2010 - initial version. works with scrapy 0.9
-
-imported from
-http://snipplr.com/view/67012/selfcontained-script-to-crawl-a-site-updated-scrapy-130dev/
-
 # author: darkrho
 """
+# for scrapy 0.24
 
 from scrapy.contrib.loader import ItemLoader
 from scrapy.item import Item, Field
@@ -65,32 +55,35 @@ class MySpider(Spider):
 
 def main():
     """Setups item signal and run the spider"""
-    # set up signal to catch items scraped
+    from twisted.internet import reactor
     from scrapy import signals
-    from scrapy.xlib.pydispatch import dispatcher
+    from scrapy.settings import Settings
+    from scrapy.crawler import Crawler
 
     def catch_item(sender, item, **kwargs):
         print "Got:", item
 
-    dispatcher.connect(catch_item, signal=signals.item_passed)
-
-    # shut off log
-    from scrapy.conf import settings
-    settings.overrides['LOG_ENABLED'] = False
+    settings = Settings()
 
     # set up crawler
-    from scrapy.crawler import CrawlerProcess
+    crawler = Crawler(settings)
+    # shut off log
+    crawler.settings.set('LOG_ENABLED', False, priority='cmdline')
+    # set up signal to catch items scraped
+    crawler.signals.connect(catch_item,   signal=signals.item_passed)
+    crawler.signals.connect(reactor.stop, signal=signals.spider_closed)
 
-    crawler = CrawlerProcess(settings)
     crawler.install()
     crawler.configure()
 
     # schedule spider
-    crawler.crawl(MySpider())
+    spider = MySpider()
+    crawler.crawl(spider)
 
     # start engine scrapy/twisted
     print "STARTING ENGINE"
     crawler.start()
+    reactor.run()
     print "ENGINE STOPPED"
 
 

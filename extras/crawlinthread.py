@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Run Scrapy crawler in a thread - works on Scrapy 0.8
 
@@ -24,6 +25,9 @@ http://snipplr.com/view/67015/run-scrapy-crawler-in-a-thread/
 # date  : Aug 11, 2010
 """
 
+# for scrapy 0.8
+# hopelessly outdated
+
 import threading, Queue
 
 from twisted.internet import reactor
@@ -32,6 +36,7 @@ from scrapy.xlib.pydispatch import dispatcher
 from scrapy.core.manager import scrapymanager
 from scrapy.core.engine import scrapyengine
 from scrapy.core import signals
+
 
 class CrawlerThread(threading.Thread):
 
@@ -63,29 +68,29 @@ class CrawlerThread(threading.Thread):
         q.get()
 
 
-# Usage example below:
+def main():
+    import os
+    os.environ.setdefault('SCRAPY_SETTINGS_MODULE', 'myproject.settings')
 
-import os
-os.environ.setdefault('SCRAPY_SETTINGS_MODULE', 'myproject.settings')
+    from scrapy.conf import settings
+    from scrapy.crawler import CrawlerThread
 
-from scrapy.xlib.pydispatch import dispatcher
-from scrapy.core import signals
-from scrapy.conf import settings
-from scrapy.crawler import CrawlerThread
+    settings.overrides['LOG_ENABLED'] = False # avoid log noise
 
-settings.overrides['LOG_ENABLED'] = False # avoid log noise
+    def item_passed(item):
+        print "Just scraped item:", item
 
-def item_passed(item):
-    print "Just scraped item:", item
+    dispatcher.connect(item_passed, signal=signals.item_passed)
 
-dispatcher.connect(item_passed, signal=signals.item_passed)
+    crawler = CrawlerThread()
+    print "Starting crawler thread..."
+    crawler.start()
+    print "Crawling somedomain.com...."
+    crawler.crawl('somedomain.com') # blocking call
+    print "Crawling anotherdomain.com..."
+    crawler.crawl('anotherdomain.com') # blocking call
+    print "Stopping crawler thread..."
+    crawler.stop()
 
-crawler = CrawlerThread()
-print "Starting crawler thread..."
-crawler.start()
-print "Crawling somedomain.com...."
-crawler.crawl('somedomain.com') # blocking call
-print "Crawling anotherdomain.com..."
-crawler.crawl('anotherdomain.com') # blocking call
-print "Stopping crawler thread..."
-crawler.stop()
+if __name__ == '__main__':
+    main()
