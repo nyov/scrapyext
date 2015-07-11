@@ -9,16 +9,13 @@ The multiprocessing library is used in order to work around a bug
 in Twisted, in which you cannot restart an already running reactor
 or in this case a scrapy instance.
 
-[Here](http://groups.google.com/group/scrapy-users/browse_thread/thread/f332fc5b749d401a)
-is the mailing-list discussion for this snippet.
-
 imported from
 http://snipplr.com/view/67006/using-scrapy-from-a-script/
 
-# Snippet imported from snippets.scrapy.org (which no longer works)
 # author: joehillen
-# date  : Oct 24, 2010
 """
+
+# scrapy ~0.10 ?
 
 import os
 os.environ.setdefault('SCRAPY_SETTINGS_MODULE', 'project.settings') #Must be at the top before other imports
@@ -28,6 +25,7 @@ from scrapy.xlib.pydispatch import dispatcher
 from scrapy.conf import settings
 from scrapy.crawler import CrawlerProcess
 from multiprocessing import Process, Queue
+
 
 class CrawlerScript():
 

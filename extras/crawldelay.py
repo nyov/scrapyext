@@ -4,7 +4,7 @@
 # A spider example on using reactor.callLater()
 # for delays and repetition.
 
-# scrapy 0.24
+# for scrapy 0.24
 
 import scrapy
 from twisted.internet import reactor, defer
