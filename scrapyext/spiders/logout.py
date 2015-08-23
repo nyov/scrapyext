@@ -17,14 +17,14 @@ class LogoutSpider(Spider):
 	@classmethod
 	def from_crawler(cls, crawler):
 		o = cls(crawler)
-		crawler.signals.connect(o.spider_logout, signal=signals.spider_idle)
+		crawler.signals.connect(o._logout, signal=signals.spider_idle)
 		return o
 
 	def start_requests(self):
 		return super(LogoutSpider, self).start_requests()
 
 	logout_done = False
-	def spider_logout(self, spider):
+	def _logout(self, spider):
 		if spider != self: return
 		if self.logout_done: return
 		if not self.logout_url: return

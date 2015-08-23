@@ -1,7 +1,4 @@
-try:
-	from scrapy.contrib.loader import XPathItemLoader as ScrapyItemLoader # pre-0.22
-except ImportError:
-	from scrapy.contrib.loader import ItemLoader as ScrapyItemLoader
+from scrapy.loader import ItemLoader as ScrapyItemLoader
 
 
 class ItemLoader(ScrapyItemLoader):
@@ -22,6 +19,8 @@ class ItemLoader(ScrapyItemLoader):
 
 	# keep old behaviour of returning None values from Loader
 	# if https://github.com/scrapy/scrapy/pull/556 stays around
+	# (required for, e.g. setting database fields NULL instead of
+	#  ignoring the key)
 	def load_item(self):
 		item = self.item
 		for field_name in self._values:
