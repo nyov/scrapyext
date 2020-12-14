@@ -1,10 +1,9 @@
-from scrapy.loader import ItemLoader as ScrapyItemLoader
+from itemloaders import ItemLoader as ScrapyItemLoader
 
 
 class ItemLoader(ScrapyItemLoader):
 	""" Extended Loader
-
-	for selector resetting.
+	for Selector resetting.
 	"""
 
 	def reset(self, selector=None, response=None):

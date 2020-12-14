@@ -3,6 +3,11 @@ try:
 except ImportError:
 	from distutils.core import setup
 
+install_requires = [
+	# dependencies of this codebase
+	'itemloaders>=1.0.1',
+]
+
 setup(
 	name = 'scrapyext',
 	version = '0.0',
@@ -16,5 +21,6 @@ setup(
 		'License :: OSI Approved :: BSD License',
 		'Operating System :: OS Independent',
 		'Programming Language :: Python'
-	]
+	],
+	install_requires=install_requires,
 )
